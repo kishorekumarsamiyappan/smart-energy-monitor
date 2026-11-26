@@ -1,0 +1,73 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Smart Energy Monitor REST API",
+    "version": "1.0.0",
+    "description": "Shared backend REST API for Web, Android Mobile, and ESP32-S3 single-phase monitoring & TNEB LT-IA billing."
+  },
+  "servers": [{ "url": "/api" }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    }
+  },
+  "paths": {
+    "/health": { "get": { "summary": "Health & DB/MQTT connectivity check", "responses": { "200": { "description": "OK" } } } },
+    "/auth/register": { "post": { "summary": "Register user account", "responses": { "201": { "description": "Created" } } } },
+    "/auth/login": { "post": { "summary": "Login with email or mobile number", "responses": { "200": { "description": "Authenticated" } } } },
+    "/auth/logout": { "post": { "summary": "Invalidate active session JWT", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Logged out" } } } },
+    "/devices": {
+      "get": { "summary": "List user devices", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } },
+      "post": { "summary": "Pair new ESP32-S3 device", "security": [{ "bearerAuth": [] }], "responses": { "201": { "description": "Paired" } } }
+    },
+    "/devices/{id}": {
+      "get": { "summary": "Get device details & sensor config", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } },
+      "patch": { "summary": "Update device metadata or admin calibration", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Updated" } } },
+      "delete": { "summary": "Remove device ownership", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Deleted" } } }
+    },
+    "/devices/{id}/telemetry": { "get": { "summary": "Query device telemetry series", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/devices/{id}/latest": { "get": { "summary": "Get latest device measurement", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/devices/{id}/history": { "get": { "summary": "Historical series & summary stats", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/devices/{id}/energy": { "get": { "summary": "Lifetime cumulative energy counter", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/devices/{id}/energy/daily": { "get": { "summary": "Daily IST rollups", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/devices/{id}/energy/monthly": { "get": { "summary": "Monthly IST rollups", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/devices/{id}/io-config": {
+      "get": { "summary": "Get LED & offline buffer I/O configuration", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } },
+      "patch": { "summary": "Update LED (RGB/Single), pulse LED, and offline buffer config", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Updated" } } }
+    },
+    "/devices/{id}/relays": {
+      "get": { "summary": "List confirmed CH1 and expansion relays + schedules", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } },
+      "post": { "summary": "Add expansion relay channel", "security": [{ "bearerAuth": [] }], "responses": { "201": { "description": "Created" } } }
+    },
+    "/devices/{id}/relays/{relayId}": {
+      "patch": { "summary": "Toggle relay state or update channel settings", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Updated" } } },
+      "delete": { "summary": "Delete expansion relay channel", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Deleted" } } }
+    },
+    "/devices/{id}/relays/{relayId}/schedules": {
+      "post": { "summary": "Add offline-capable IST schedule to relay", "security": [{ "bearerAuth": [] }], "responses": { "201": { "description": "Created" } } }
+    },
+    "/devices/{id}/relays/{relayId}/schedules/{scheduleId}": {
+      "patch": { "summary": "Enable/update relay schedule", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Updated" } } },
+      "delete": { "summary": "Delete relay schedule", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Deleted" } } }
+    },
+    "/devices/{id}/firmware": { "get": { "summary": "Compare installed firmware vs GitHub Releases + OTA jobs", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/devices/{id}/ota": { "post": { "summary": "Dispatch MQTT GitHub FOTA update command", "security": [{ "bearerAuth": [] }], "responses": { "202": { "description": "Dispatched" } } } },
+    "/firmware/releases": { "get": { "summary": "List firmware releases", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/admin/firmware/sync-github": { "post": { "summary": "Sync latest release from GitHub Releases (Admin)", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Synced" } } } },
+    "/admin/firmware/releases": { "post": { "summary": "Publish/register GitHub .bin release (Admin)", "security": [{ "bearerAuth": [] }], "responses": { "201": { "description": "Registered" } } } },
+    "/billing/current": { "get": { "summary": "Current cycle TNEB estimate", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/billing/manual-reading": { "post": { "summary": "Submit manual EB meter reading & compare", "security": [{ "bearerAuth": [] }], "responses": { "201": { "description": "Recorded" } } } },
+    "/billing/calculate": { "post": { "summary": "Calculate & save TNEB LT-IA bill", "security": [{ "bearerAuth": [] }], "responses": { "201": { "description": "Calculated" } } } },
+    "/billing/history": { "get": { "summary": "List billing cycles & manual readings", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/billing/{id}": { "get": { "summary": "Get full billing record calculation", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/tariffs/current": { "get": { "summary": "Get active TNEB tariff schedule", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/tariffs/history": { "get": { "summary": "List tariff version history", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/admin/tariffs": { "post": { "summary": "Create new tariff version (Admin)", "security": [{ "bearerAuth": [] }], "responses": { "201": { "description": "Created" } } } },
+    "/admin/tariffs/{id}": { "patch": { "summary": "Update/verify tariff version (Admin)", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Updated" } } } },
+    "/alerts": { "get": { "summary": "List alerts & alert rules", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "OK" } } } },
+    "/alerts/rules": { "post": { "summary": "Create threshold alert rule", "security": [{ "bearerAuth": [] }], "responses": { "201": { "description": "Created" } } } },
+    "/alerts/rules/{id}": { "patch": { "summary": "Update alert rule", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Updated" } } } },
+    "/reports/csv": { "get": { "summary": "Export CSV report (IST timestamps)", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "CSV stream" } } } },
+    "/reports/pdf": { "get": { "summary": "Export PDF report (IST timestamps)", "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "PDF binary" } } } }
+  }
+}

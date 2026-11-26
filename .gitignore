@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+.dev.vars
+secrets.env
+.wrangler/
+secrets/
+*.pem
+*.key
+*.crt
+!mqtt/certs/.gitkeep
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Flutter / Android
+mobile/.dart_tool/
+mobile/.packages
+mobile/build/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/app/debug/
+mobile/android/app/release/
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# ESP-IDF Firmware
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/managed_components/
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db

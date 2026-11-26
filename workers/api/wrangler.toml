@@ -1,0 +1,24 @@
+name = "smart-energy-monitor-api"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+[vars]
+CORS_ORIGINS = "*"
+TELEMETRY_RETENTION_DAYS = "30"
+GITHUB_FIRMWARE_REPO = "owner/smart-energy-monitor-firmware"
+
+# Daily 02:30 AM IST (21:00 UTC) cron prunes raw >30d telemetry while preserving
+# energy_daily, energy_counters, and billing_cycles indefinitely under Supabase 500MB free tier.
+[triggers]
+crons = ["0 21 * * *"]
+
+# Configure production secrets via `wrangler secret put`:
+#   wrangler secret put SUPABASE_URL
+#   wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+#   wrangler secret put JWT_SECRET
+#   wrangler secret put EMQX_WEBHOOK_SECRET
+#   wrangler secret put EMQX_API_URL
+#   wrangler secret put EMQX_APP_ID
+#   wrangler secret put EMQX_APP_SECRET
+#   wrangler secret put GITHUB_TOKEN

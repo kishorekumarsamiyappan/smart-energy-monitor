@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: change_me_local_pg
+      POSTGRES_DB: smart_energy_monitor
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+
+  emqx:
+    image: emqx/emqx:5.8
+    ports:
+      - "1883:1883"
+      - "8883:8883"
+      - "18083:18083"
+    volumes:
+      - ./mqtt/emqx.conf:/opt/emqx/etc/emqx.conf:ro
+      - ./mqtt/acl.conf:/opt/emqx/etc/acl.conf:ro
+      - ./mqtt/certs:/opt/emqx/etc/certs:ro
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - .env
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://postgres:change_me_local_pg@postgres:5432/smart_energy_monitor
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - emqx
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    env_file:
+      - .env
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pg_data:

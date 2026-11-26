@@ -1,0 +1,27 @@
+{
+  "name": "smart-energy-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart Energy Monitor - Complete Full-Stack IoT Platform (Web, Flutter Android, Node.js/MQTT Backend, PostgreSQL/Supabase, ESP32-S3 Firmware)",
+  "workspaces": [
+    "packages/shared",
+    "backend",
+    "web",
+    "workers/api"
+  ],
+  "scripts": {
+    "dev:backend": "npm --workspace=backend run dev",
+    "dev:web": "npm --workspace=web run dev",
+    "dev:worker": "npm --workspace=workers/api run dev",
+    "build": "npm --workspace=packages/shared run build && npm --workspace=backend run build && npm --workspace=workers/api run build && npm --workspace=web run build",
+    "test:shared": "npm --workspace=packages/shared test",
+    "test:db": "node database/tests/schema.test.mjs",
+    "test:backend": "npm --workspace=backend test",
+    "test:worker": "npm --workspace=workers/api test",
+    "test:web": "npm --workspace=web test",
+    "test": "npm run test:shared && npm run test:db && npm run test:backend && npm run test:worker && npm run test:web"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
