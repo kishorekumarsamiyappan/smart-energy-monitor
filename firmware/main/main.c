@@ -22,6 +22,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 static const char *TAG = "SEM_MAIN";
 #define SEM_FIRMWARE_VERSION "1.3.1"
@@ -123,10 +124,18 @@ static void on_ble_provisioned(void) {
 }
 
 static bool drain_offline_sample_cb(const offline_sample_t *s) {
-  return sem_mqtt_publish_telemetry(
+  const char *ts_arg = s->timestamp_iso;
+  if (strncmp(s->timestamp_iso, "1970", 4) == 0 && time(NULL) > 1700000000L) {
+    ts_arg = NULL; // Use newly synced SNTP clock instead of 1970 epoch timestamp
+  }
+  bool ok = sem_mqtt_publish_telemetry(
       s_device_id, s->voltage_rms, s->current_rms, s->active_power_w,
       s->apparent_power_va, s->power_factor, s->frequency_hz, s->energy_kwh,
-      s->wifi_rssi, s->seq, s->timestamp_iso, true);
+      s->wifi_rssi, s->seq, ts_arg, true);
+  if (ok) {
+    vTaskDelay(pdMS_TO_TICKS(50)); // Pace burst so EMQX broker ingests cleanly
+  }
+  return ok;
 }
 
 static float median_of_window(const float *buf, int count) {
@@ -291,10 +300,12 @@ static void measurement_task(void *arg) {
       if (m.valid) {
         seq++;
         if (sem_mqtt_is_connected()) {
-          // Drain up to 10 buffered historical records first so cloud backfills
-          // cleanly
+          // Drain up to 25 buffered historical records when network returns
           if (offline_buffer_get_count() > 0) {
-            offline_buffer_drain(drain_offline_sample_cb, 10);
+            int drained = offline_buffer_drain(drain_offline_sample_cb, 25);
+            if (drained > 0) {
+              sem_mqtt_publish_status("online", NULL, 0, SEM_FIRMWARE_VERSION);
+            }
           }
           sem_mqtt_publish_telemetry(s_device_id, m.voltage_rms, m.current_rms,
                                      m.active_power_w, m.apparent_power_va,

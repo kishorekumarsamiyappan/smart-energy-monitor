@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, FileText, Receipt } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, FileText, Receipt, RefreshCw, RotateCcw } from 'lucide-react';
 import {
   BillingCycleRecord,
   calculateTnebBill,
@@ -21,32 +21,80 @@ import { jsPDF } from 'jspdf';
 export default function BillingPage() {
   const router = useRouter();
   const { user, isDemoMode, isLoading } = useAuth();
-  const { devices, selectedDeviceId, latestByDevice, billingCycles, activeTariff, recordActualBill } = useData();
+  const { devices, selectedDeviceId, latestByDevice, billingCycles, activeTariff, saveBillingEstimate, recordActualBill } = useData();
 
   const device = devices.find((d) => d.deviceId === selectedDeviceId) || devices[0];
   const latest = device ? latestByDevice[device.deviceId] : null;
+  const draftKey = `sem_billing_draft_${user?.id ?? (isDemoMode ? 'demo' : 'guest')}_${device?.deviceId ?? 'default'}`;
 
-  const [prevRead, setPrevRead] = useState('1320');
-  const [currRead, setCurrRead] = useState('1685.4');
+  const [prevRead, setPrevRead] = useState('0');
+  const [currRead, setCurrRead] = useState('0');
   const [readingSource, setReadingSource] = useState<ReadingSource>('automatic_esp32');
   const [eligible, setEligible] = useState(true);
   const [expandedCycleId, setExpandedCycleId] = useState<string | null>(null);
   const [actualInputById, setActualInputById] = useState<Record<string, string>>({});
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const loadedDraftKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user && !isDemoMode) router.replace('/login');
   }, [isDemoMode, isLoading, router, user]);
 
   useEffect(() => {
-    if (latest) {
-      setCurrRead(latest.energyKwh.toFixed(1));
+    if (isLoading || (!user && !isDemoMode)) return;
+    if (loadedDraftKeyRef.current === draftKey) return;
+    loadedDraftKeyRef.current = draftKey;
+
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(draftKey) : null;
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          prevRead?: string;
+          currRead?: string;
+          readingSource?: ReadingSource;
+          eligible?: boolean;
+        };
+        setPrevRead(parsed.prevRead ?? '0');
+        setCurrRead(parsed.currRead ?? '0');
+        setReadingSource(parsed.readingSource ?? 'automatic_esp32');
+        setEligible(parsed.eligible ?? (device?.consumerEligibleForSubsidy ?? true));
+        return;
+      }
+    } catch {
+      // Ignore invalid local draft JSON
     }
-    if (device) {
-      setEligible(device.consumerEligibleForSubsidy);
+    setPrevRead('0');
+    setCurrRead('0');
+    setReadingSource('automatic_esp32');
+    setEligible(device?.consumerEligibleForSubsidy ?? true);
+  }, [device?.consumerEligibleForSubsidy, draftKey, isDemoMode, isLoading, user]);
+
+  const persistDraft = (patch: {
+    prevRead?: string;
+    currRead?: string;
+    readingSource?: ReadingSource;
+    eligible?: boolean;
+  }) => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          prevRead: patch.prevRead ?? prevRead,
+          currRead: patch.currRead ?? currRead,
+          readingSource: patch.readingSource ?? readingSource,
+          eligible: patch.eligible ?? eligible,
+        }),
+      );
+    } catch {
+      // Ignore storage quota errors
     }
-  }, [device, latest]);
+  };
 
   if (isLoading || (!user && !isDemoMode)) return null;
+
+  const endDateIso = new Date().toISOString().slice(0, 10);
+  const startDateIso = new Date(Date.now() - 60 * 86_400_000).toISOString().slice(0, 10);
 
   let calcError: string | null = null;
   let calcResult = null;
@@ -57,8 +105,8 @@ export default function BillingPage() {
       consumerEligible: eligible,
       previousReading: Number(prevRead),
       currentReading: Number(currRead),
-      previousReadingDate: '2026-10-01',
-      currentReadingDate: '2026-11-25',
+      previousReadingDate: startDateIso,
+      currentReadingDate: endDateIso,
       readingSource,
       tariffVersion: activeTariff ?? INDICATIVE_2026_TNEB_LT1A_TARIFF,
     });
@@ -161,26 +209,119 @@ export default function BillingPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 10 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Previous Reading (kWh)</label>
-                <input type="number" step="0.1" className="sem-input" value={prevRead} onChange={(e) => setPrevRead(e.target.value)} />
+                <input
+                  type="number"
+                  step="0.1"
+                  className="sem-input"
+                  value={prevRead}
+                  onChange={(e) => {
+                    const nextVal = e.target.value;
+                    setPrevRead(nextVal);
+                    setSaveNotice(null);
+                    persistDraft({ prevRead: nextVal });
+                  }}
+                />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Current Reading (kWh)</label>
-                <input type="number" step="0.1" className="sem-input" value={currRead} onChange={(e) => setCurrRead(e.target.value)} />
+                <input
+                  type="number"
+                  step="0.1"
+                  className="sem-input"
+                  value={currRead}
+                  onChange={(e) => {
+                    const nextVal = e.target.value;
+                    setCurrRead(nextVal);
+                    setSaveNotice(null);
+                    persistDraft({ currRead: nextVal });
+                  }}
+                />
               </div>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Reading Source</label>
-              <select className="sem-input" value={readingSource} onChange={(e) => setReadingSource(e.target.value as ReadingSource)}>
+              <select
+                className="sem-input"
+                value={readingSource}
+                onChange={(e) => {
+                  const nextSrc = e.target.value as ReadingSource;
+                  setReadingSource(nextSrc);
+                  persistDraft({ readingSource: nextSrc });
+                }}
+              >
                 <option value="automatic_esp32">Automatic ESP32-S3 Lifetime Counter</option>
                 <option value="manual_eb_meter">Manual EB Meter Reading</option>
               </select>
             </div>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-              <input type="checkbox" checked={eligible} onChange={(e) => setEligible(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={eligible}
+                onChange={(e) => {
+                  const nextElig = e.target.checked;
+                  setEligible(nextElig);
+                  persistDraft({ eligible: nextElig });
+                }}
+              />
               Consumer eligible for Tamil Nadu domestic free-unit subsidy
             </label>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <button
+                type="button"
+                className="sem-btn sem-btn-outline"
+                style={{ padding: '7px 12px', fontSize: 12 }}
+                disabled={!latest}
+                onClick={() => {
+                  if (!latest) return;
+                  const nextCurr = latest.energyKwh.toFixed(2);
+                  setCurrRead(nextCurr);
+                  setSaveNotice(null);
+                  persistDraft({ currRead: nextCurr });
+                }}
+              >
+                <RefreshCw size={14} /> Sync Live kWh
+              </button>
+              <button
+                type="button"
+                className="sem-btn sem-btn-outline"
+                style={{ padding: '7px 12px', fontSize: 12 }}
+                onClick={() => {
+                  setPrevRead('0');
+                  setCurrRead('0');
+                  setSaveNotice(null);
+                  persistDraft({ prevRead: '0', currRead: '0' });
+                }}
+              >
+                <RotateCcw size={14} /> Reset to 0
+              </button>
+              {device && !calcError && calcResult && (
+                <button
+                  type="button"
+                  className="sem-btn sem-btn-primary"
+                  style={{ padding: '7px 12px', fontSize: 12, marginLeft: 'auto' }}
+                  onClick={async () => {
+                    await saveBillingEstimate({
+                      deviceId: device.deviceId,
+                      previousReading: Number(prevRead),
+                      currentReading: Number(currRead),
+                      previousReadingDate: startDateIso,
+                      currentReadingDate: endDateIso,
+                      readingSource,
+                      consumerEligible: eligible,
+                    });
+                    setSaveNotice('Billing estimate saved to history.');
+                  }}
+                >
+                  <CheckCircle2 size={14} /> Save Estimate
+                </button>
+              )}
+            </div>
+            {saveNotice && (
+              <div style={{ color: 'var(--sem-success)', fontSize: 12.5, fontWeight: 700 }}>{saveNotice}</div>
+            )}
 
             {calcError ? (
               <div style={{ color: 'var(--sem-error)', fontWeight: 600, fontSize: 13 }}>{calcError}</div>

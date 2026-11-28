@@ -290,7 +290,7 @@ export class SupabaseStore implements WorkerStore {
   constructor(env: WorkerEnv) {
     this.baseUrl = (env.SUPABASE_URL ?? '').trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/$/, '');
     this.serviceKey = (env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim();
-    this.defaultGithubRepo = env.GITHUB_FIRMWARE_REPO || 'owner/smart-energy-monitor-firmware';
+    this.defaultGithubRepo = env.GITHUB_FIRMWARE_REPO || 'kishorekumarsamiyappan/smart-energy-monitor';
     this.jwtSecret = env.JWT_SECRET || '';
   }
 
@@ -761,6 +761,12 @@ export class SupabaseStore implements WorkerStore {
     seq?: number;
     buffered?: boolean;
   }): Promise<TelemetryIngestResult> {
+    const parsedTs = new Date(input.deviceTimestamp);
+    const normalizedIso =
+      Number.isNaN(parsedTs.getTime()) || parsedTs.getUTCFullYear() < 2024
+        ? new Date().toISOString()
+        : parsedTs.toISOString();
+
     const rpcRes = await this.rpc<{
       inserted: boolean;
       isHistoricalBackfill: boolean;
@@ -779,7 +785,7 @@ export class SupabaseStore implements WorkerStore {
       p_energy_kwh: input.energyKwh,
       p_wifi_rssi_dbm: input.wifiRssiDbm ?? null,
       p_message_seq: input.seq ?? null,
-      p_device_timestamp: new Date(input.deviceTimestamp).toISOString(),
+      p_device_timestamp: normalizedIso,
       p_is_buffered: Boolean(input.buffered),
     });
 
@@ -2025,7 +2031,11 @@ export class MemoryWorkerStore implements WorkerStore {
     if (!dev) throw new WorkerHttpError(404, 'Unknown device', 'DEVICE_NOT_FOUND');
 
     const series = this.telemetry.get(dev.uuid) ?? [];
-    const tsIso = new Date(input.deviceTimestamp).toISOString();
+    const parsedTs = new Date(input.deviceTimestamp);
+    const tsIso =
+      Number.isNaN(parsedTs.getTime()) || parsedTs.getUTCFullYear() < 2024
+        ? new Date().toISOString()
+        : parsedTs.toISOString();
     const maxTs = series.reduce<number | null>((m, p) => {
       const t = Date.parse(p.deviceTimestamp);
       return m === null || t > m ? t : m;
@@ -2285,7 +2295,7 @@ export class MemoryWorkerStore implements WorkerStore {
       id: crypto.randomUUID(),
       version: cleanVer,
       tagName: input.tagName ?? `v${cleanVer}`,
-      githubRepo: input.githubRepo ?? 'owner/smart-energy-monitor-firmware',
+      githubRepo: input.githubRepo ?? 'kishorekumarsamiyappan/smart-energy-monitor',
       binaryUrl: input.binaryUrl,
       checksumSha256: input.checksumSha256 ?? null,
       releaseNotes: input.releaseNotes ?? '',
@@ -2301,7 +2311,7 @@ export class MemoryWorkerStore implements WorkerStore {
     const updateAvailable = Boolean(latest?.binaryUrl && compareSemver(latest.version, currentVersion) > 0);
     return {
       currentVersion,
-      githubRepo: latest?.githubRepo ?? 'owner/smart-energy-monitor-firmware',
+      githubRepo: latest?.githubRepo ?? 'kishorekumarsamiyappan/smart-energy-monitor',
       latestRelease: latest ? { ...latest, isUpdateAvailable: updateAvailable } : null,
       updateAvailable,
       jobs: this.otaJobs,

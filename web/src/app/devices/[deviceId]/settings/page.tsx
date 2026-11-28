@@ -475,7 +475,7 @@ export default function DeviceSettingsPage() {
                     />
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--sem-muted)', marginTop: 6 }}>
-                    GitHub Repository: {fwInfo?.githubRepo ?? 'smart-energy-monitor/esp32-s3-firmware'}
+                    GitHub Repository: {fwInfo?.githubRepo ?? 'kishorekumarsamiyappan/smart-energy-monitor'}
                   </div>
                 </div>
 

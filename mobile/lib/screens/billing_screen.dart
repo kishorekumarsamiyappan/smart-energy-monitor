@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/billing/tneb_billing_engine.dart';
 import '../core/theme/app_theme.dart';
 import '../providers/app_state.dart';
@@ -13,10 +14,11 @@ class BillingScreen extends StatefulWidget {
 }
 
 class _BillingScreenState extends State<BillingScreen> {
-  final _prevCtrl = TextEditingController(text: '1320');
-  final _currCtrl = TextEditingController(text: '1685.4');
+  final _prevCtrl = TextEditingController(text: '0');
+  final _currCtrl = TextEditingController(text: '0');
   bool _eligible = true;
   String _source = 'automatic_esp32';
+  String? _loadedDeviceKey;
 
   @override
   void dispose() {
@@ -25,10 +27,37 @@ class _BillingScreenState extends State<BillingScreen> {
     super.dispose();
   }
 
+  Future<void> _loadDraft(String deviceKey, bool defaultEligible) async {
+    _loadedDeviceKey = deviceKey;
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _prevCtrl.text = prefs.getString('sem_bill_prev_$deviceKey') ?? '0';
+      _currCtrl.text = prefs.getString('sem_bill_curr_$deviceKey') ?? '0';
+      _source = prefs.getString('sem_bill_src_$deviceKey') ?? 'automatic_esp32';
+      _eligible = prefs.getBool('sem_bill_elig_$deviceKey') ?? defaultEligible;
+    });
+  }
+
+  Future<void> _saveDraft(String deviceKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('sem_bill_prev_$deviceKey', _prevCtrl.text);
+    await prefs.setString('sem_bill_curr_$deviceKey', _currCtrl.text);
+    await prefs.setString('sem_bill_src_$deviceKey', _source);
+    await prefs.setBool('sem_bill_elig_$deviceKey', _eligible);
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final dev = state.selectedDevice;
+    final latest = dev != null ? state.latestByDevice[dev.deviceId] : null;
+    final deviceKey = dev?.deviceId ?? 'SEM_ESP32S3_01';
+    if (_loadedDeviceKey != deviceKey) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadDraft(deviceKey, dev?.consumerEligibleForSubsidy ?? true);
+      });
+    }
     final prev = double.tryParse(_prevCtrl.text) ?? 0;
     final curr = double.tryParse(_currCtrl.text) ?? 0;
 
@@ -93,7 +122,10 @@ class _BillingScreenState extends State<BillingScreen> {
                         controller: _prevCtrl,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(labelText: 'Prev Reading (kWh)'),
-                        onChanged: (_) => setState(() {}),
+                        onChanged: (_) {
+                          _saveDraft(deviceKey);
+                          setState(() {});
+                        },
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -102,7 +134,10 @@ class _BillingScreenState extends State<BillingScreen> {
                         controller: _currCtrl,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(labelText: 'Curr Reading (kWh)'),
-                        onChanged: (_) => setState(() {}),
+                        onChanged: (_) {
+                          _saveDraft(deviceKey);
+                          setState(() {});
+                        },
                       ),
                     ),
                   ],
@@ -116,14 +151,45 @@ class _BillingScreenState extends State<BillingScreen> {
                     DropdownMenuItem(value: 'manual_eb_meter', child: Text('Manual EB Meter Reading')),
                   ],
                   onChanged: (v) {
-                    if (v != null) setState(() => _source = v);
+                    if (v != null) {
+                      setState(() => _source = v);
+                      _saveDraft(deviceKey);
+                    }
                   },
                 ),
                 SwitchListTile(
                   value: _eligible,
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Eligible for TN Domestic Free-Unit Subsidy', style: TextStyle(fontSize: 13)),
-                  onChanged: (v) => setState(() => _eligible = v),
+                  onChanged: (v) {
+                    setState(() => _eligible = v);
+                    _saveDraft(deviceKey);
+                  },
+                ),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.sync_rounded, size: 16),
+                      label: const Text('Sync Live kWh'),
+                      onPressed: latest == null
+                          ? null
+                          : () {
+                              setState(() => _currCtrl.text = latest.energyKwh.toStringAsFixed(2));
+                              _saveDraft(deviceKey);
+                            },
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _prevCtrl.text = '0';
+                          _currCtrl.text = '0';
+                        });
+                        _saveDraft(deviceKey);
+                      },
+                      child: const Text('Reset to 0 kWh'),
+                    ),
+                  ],
                 ),
               ],
             ),

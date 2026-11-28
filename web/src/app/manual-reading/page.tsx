@@ -17,11 +17,11 @@ export default function ManualReadingPage() {
   const device = devices.find((d) => d.deviceId === selectedDeviceId) || devices[0];
   const latest = device ? latestByDevice[device.deviceId] : null;
 
-  const [previousReading, setPreviousReading] = useState('1320');
-  const [previousDate, setPreviousDate] = useState('2026-10-01');
-  const [currentReading, setCurrentReading] = useState('1685');
-  const [currentDate, setCurrentDate] = useState('2026-11-25');
-  const [serialNumber, setSerialNumber] = useState(device?.meterSerialNumber ?? 'TN-EB-884210');
+  const [previousReading, setPreviousReading] = useState('0');
+  const [previousDate, setPreviousDate] = useState(new Date(Date.now() - 60 * 86_400_000).toISOString().slice(0, 10));
+  const [currentReading, setCurrentReading] = useState('0');
+  const [currentDate, setCurrentDate] = useState(new Date().toISOString().slice(0, 10));
+  const [serialNumber, setSerialNumber] = useState(device?.meterSerialNumber ?? '');
   const [notes, setNotes] = useState('');
   const [preferredSource, setPreferredSource] = useState<'manual_eb_meter' | 'automatic_esp32'>('manual_eb_meter');
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -34,7 +34,9 @@ export default function ManualReadingPage() {
   if (isLoading || (!user && !isDemoMode)) return null;
 
   const manualUnits = Math.max(0, Number(currentReading) - Number(previousReading));
-  const autoCycleUnits = latest ? Math.max(0, Math.round((latest.energyKwh - 1320) * 100) / 100) : manualUnits;
+  const autoCycleUnits = latest
+    ? Math.max(0, Math.round((isDemoMode ? latest.energyKwh - 1320 : latest.energyKwh) * 100) / 100)
+    : manualUnits;
   const comparison = compareReadingSources(autoCycleUnits, manualUnits);
 
   const handleSubmit = async (e: React.FormEvent) => {

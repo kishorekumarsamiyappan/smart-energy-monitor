@@ -99,6 +99,7 @@ bool offline_buffer_push(const offline_sample_t *s) {
         s->power_factor, s->frequency_hz, s->energy_kwh, s->wifi_rssi,
         (unsigned long)s->seq, s->timestamp_iso
     );
+    fflush(f);
     fclose(f);
     s_queued_count++;
 
@@ -131,16 +132,30 @@ int offline_buffer_drain(offline_drain_cb_t publish_cb, int max_items) {
         }
 
         offline_sample_t sample = {0};
-        sample.voltage_rms = (float)cJSON_GetObjectItem(obj, "v")->valuedouble;
-        sample.current_rms = (float)cJSON_GetObjectItem(obj, "i")->valuedouble;
-        sample.active_power_w = (float)cJSON_GetObjectItem(obj, "p")->valuedouble;
-        sample.apparent_power_va = (float)cJSON_GetObjectItem(obj, "s")->valuedouble;
-        sample.power_factor = (float)cJSON_GetObjectItem(obj, "pf")->valuedouble;
-        sample.frequency_hz = (float)cJSON_GetObjectItem(obj, "f")->valuedouble;
-        sample.energy_kwh = cJSON_GetObjectItem(obj, "kwh")->valuedouble;
-        sample.wifi_rssi = cJSON_GetObjectItem(obj, "rssi")->valueint;
-        sample.seq = (uint32_t)cJSON_GetObjectItem(obj, "seq")->valuedouble;
+        const cJSON *jv = cJSON_GetObjectItem(obj, "v");
+        const cJSON *ji = cJSON_GetObjectItem(obj, "i");
+        const cJSON *jp = cJSON_GetObjectItem(obj, "p");
+        const cJSON *js = cJSON_GetObjectItem(obj, "s");
+        const cJSON *jpf = cJSON_GetObjectItem(obj, "pf");
+        const cJSON *jf = cJSON_GetObjectItem(obj, "f");
+        const cJSON *jkwh = cJSON_GetObjectItem(obj, "kwh");
+        const cJSON *jrssi = cJSON_GetObjectItem(obj, "rssi");
+        const cJSON *jseq = cJSON_GetObjectItem(obj, "seq");
         const cJSON *ts = cJSON_GetObjectItem(obj, "ts");
+        if (!cJSON_IsNumber(jv) || !cJSON_IsNumber(jkwh)) {
+            cJSON_Delete(obj);
+            offset = (uint32_t)next_pos;
+            continue;
+        }
+        sample.voltage_rms = (float)jv->valuedouble;
+        sample.current_rms = cJSON_IsNumber(ji) ? (float)ji->valuedouble : 0.0f;
+        sample.active_power_w = cJSON_IsNumber(jp) ? (float)jp->valuedouble : 0.0f;
+        sample.apparent_power_va = cJSON_IsNumber(js) ? (float)js->valuedouble : 0.0f;
+        sample.power_factor = cJSON_IsNumber(jpf) ? (float)jpf->valuedouble : 0.0f;
+        sample.frequency_hz = cJSON_IsNumber(jf) ? (float)jf->valuedouble : 50.0f;
+        sample.energy_kwh = jkwh->valuedouble;
+        sample.wifi_rssi = cJSON_IsNumber(jrssi) ? jrssi->valueint : -70;
+        sample.seq = cJSON_IsNumber(jseq) ? (uint32_t)jseq->valuedouble : 0;
         if (cJSON_IsString(ts)) {
             snprintf(sample.timestamp_iso, sizeof(sample.timestamp_iso), "%s", ts->valuestring);
         }

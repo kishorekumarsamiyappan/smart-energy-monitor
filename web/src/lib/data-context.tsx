@@ -70,6 +70,15 @@ interface DataContextValue {
   updateSensorConfig: (deviceId: string, patch: Partial<DeviceSensorConfig>) => Promise<void>;
   acknowledgeAlert: (alertId: string) => Promise<void>;
   saveAlertRule: (rule: Omit<AlertRule, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
+  saveBillingEstimate: (input: {
+    deviceId: string;
+    previousReading: number;
+    currentReading: number;
+    previousReadingDate: string;
+    currentReadingDate: string;
+    readingSource: 'automatic_esp32' | 'manual_eb_meter';
+    consumerEligible: boolean;
+  }) => Promise<BillingCycleRecord>;
   submitManualReading: (input: {
     deviceId: string;
     previousReading: number;
@@ -480,6 +489,58 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await refreshAll();
   };
 
+  const saveBillingEstimate = async (input: {
+    deviceId: string;
+    previousReading: number;
+    currentReading: number;
+    previousReadingDate: string;
+    currentReadingDate: string;
+    readingSource: 'automatic_esp32' | 'manual_eb_meter';
+    consumerEligible: boolean;
+  }): Promise<BillingCycleRecord> => {
+    if (isDemoMode) {
+      const calc = calculateTnebBill({
+        deviceId: input.deviceId,
+        serviceCategory: 'LT-IA',
+        consumerEligible: input.consumerEligible,
+        previousReading: input.previousReading,
+        currentReading: input.currentReading,
+        previousReadingDate: input.previousReadingDate,
+        currentReadingDate: input.currentReadingDate,
+        readingSource: input.readingSource,
+        tariffVersion: activeTariff,
+      });
+      const rec: BillingCycleRecord = {
+        id: `demo-bill-${Date.now()}`,
+        deviceId: input.deviceId,
+        userId: 'demo-user-001',
+        periodStart: input.previousReadingDate,
+        periodEnd: input.currentReadingDate,
+        previousReading: input.previousReading,
+        currentReading: input.currentReading,
+        unitsConsumed: calc.unitsConsumed,
+        readingSource: calc.readingSource,
+        estimatedAmountInr: calc.totalEstimatedAmountInr,
+        actualBillAmountInr: null,
+        varianceAmountInr: null,
+        tariffVersionCode: activeTariff.versionCode,
+        status: 'estimated',
+        calculationPayload: calc,
+        createdAt: new Date().toISOString(),
+      };
+      setBillingCycles((prev) => [rec, ...prev]);
+      return rec;
+    }
+
+    const res = await apiRequest<{ cycle?: BillingCycleRecord; billingCycle?: BillingCycleRecord }>('/billing/calculate', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(input),
+    });
+    await refreshAll({ silent: true });
+    return (res.cycle ?? res.billingCycle)!;
+  };
+
   const submitManualReading = async (input: {
     deviceId: string;
     previousReading: number;
@@ -805,6 +866,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         updateSensorConfig,
         acknowledgeAlert,
         saveAlertRule,
+        saveBillingEstimate,
         submitManualReading,
         recordActualBill,
         updateIoConfig,

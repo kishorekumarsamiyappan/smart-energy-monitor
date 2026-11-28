@@ -413,7 +413,7 @@ class DeviceSettingsScreen extends StatelessWidget {
             const SizedBox(height: 10),
             Text('Installed Version: v${fw?.currentVersion ?? dev.firmwareVersion}',
                 style: const TextStyle(fontWeight: FontWeight.w700)),
-            Text('GitHub Repo: ${fw?.githubRepo ?? "smart-energy-monitor/esp32s3-firmware"}',
+            Text('GitHub Repo: ${fw?.githubRepo ?? "kishorekumarsamiyappan/smart-energy-monitor"}',
                 style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 10),
             if (fw?.latestRelease != null) ...[

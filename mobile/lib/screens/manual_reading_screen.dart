@@ -12,9 +12,9 @@ class ManualReadingScreen extends StatefulWidget {
 }
 
 class _ManualReadingScreenState extends State<ManualReadingScreen> {
-  final _prevCtrl = TextEditingController(text: '1320');
-  final _currCtrl = TextEditingController(text: '1685');
-  final _serialCtrl = TextEditingController(text: 'TN-EB-884210');
+  final _prevCtrl = TextEditingController(text: '0');
+  final _currCtrl = TextEditingController(text: '0');
+  final _serialCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   String _selectedSource = 'manual_eb_meter';
   String? _savedMessage;
@@ -36,7 +36,7 @@ class _ManualReadingScreenState extends State<ManualReadingScreen> {
     final prev = double.tryParse(_prevCtrl.text) ?? 0;
     final curr = double.tryParse(_currCtrl.text) ?? 0;
     final manualUnits = (curr - prev).clamp(0.0, 999999.0);
-    final autoUnits = latest != null ? (latest.energyKwh - 1320).clamp(0.0, 999999.0) : manualUnits;
+    final autoUnits = latest != null ? latest.energyKwh.clamp(0.0, 999999.0) : manualUnits;
     final diff = (manualUnits - autoUnits).abs();
     final disagrees = diff >= 5 || (manualUnits > 0 && (diff / manualUnits) * 100 >= 2);
 
