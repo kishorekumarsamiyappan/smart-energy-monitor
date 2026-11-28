@@ -119,8 +119,8 @@ static void on_wifi_state(bool got_ip, bool conn_failed) {
 }
 
 static void on_ble_provisioned(void) {
+  s_mqtt_started = false;
   wifi_mgr_reconnect_with_nvs();
-  start_or_reload_mqtt_from_nvs(true);
 }
 
 static bool drain_offline_sample_cb(const offline_sample_t *s) {

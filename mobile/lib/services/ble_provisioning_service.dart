@@ -180,7 +180,10 @@ class BleProvisioningService {
           throw StateError('ESP32-S3 failed to join Wi-Fi. Check the Wi-Fi password and ensure it is 2.4 GHz.');
         }
         if (statusText.contains('AUTH_FAIL')) {
-          throw StateError('ESP32-S3 joined Wi-Fi, but EMQX rejected the MQTT username/password.');
+          throw StateError(
+            'ESP32-S3 joined Wi-Fi, but EMQX rejected the MQTT username/password or ACL. '
+            'Verify the exact case-sensitive user & password in EMQX Cloud -> Access Control -> Authentication.',
+          );
         }
         if (statusText.contains('WIFI_CONNECTED')) {
           wifiConnectedAt = wifiConnectedAt == -1 ? i : wifiConnectedAt;

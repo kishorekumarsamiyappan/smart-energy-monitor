@@ -81,7 +81,9 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
       _wifiNetworks = [];
       _errorMsg = null;
       _deviceIdCtrl.text = resolvedId;
-      _mqttUserCtrl.text = resolvedId;
+      if (_mqttUserCtrl.text.trim().isEmpty) {
+        _mqttUserCtrl.text = resolvedId;
+      }
       if (_nameCtrl.text.trim().isEmpty) {
         _nameCtrl.text = resolvedId == 'SEM_ESP32S3_01' ? 'SEM Meter 01' : 'SEM Meter ($resolvedId)';
       }
@@ -121,6 +123,13 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
     }
   }
 
+  String _cleanErrorMessage(Object e) {
+    return e
+        .toString()
+        .replaceFirst(RegExp(r'^(Bad state|Invalid argument\(s\)|Exception|TimeoutException):\s*'), '')
+        .trim();
+  }
+
   Future<void> _provisionAndSave() async {
     setState(() {
       _errorMsg = null;
@@ -145,7 +154,7 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
           wifiPassword: _wifiPassCtrl.text,
           deviceId: id,
           mqttUsername: _mqttUserCtrl.text.trim().isEmpty ? id : _mqttUserCtrl.text.trim(),
-          mqttSecret: _mqttPassCtrl.text,
+          mqttSecret: _mqttPassCtrl.text.trim(),
         );
         if (!mounted) return;
         setState(() => _statusMsg = 'ESP32 status: $bleStatus');
@@ -161,7 +170,12 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
       if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
-      if (mounted) setState(() => _errorMsg = e.toString());
+      if (mounted) {
+        setState(() {
+          _statusMsg = null;
+          _errorMsg = _cleanErrorMessage(e);
+        });
+      }
     } finally {
       if (mounted) setState(() => _provisioning = false);
     }
@@ -183,7 +197,9 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('1. Nearby ESP32-S3 (BLE)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                      const Expanded(
+                        child: Text('1. Nearby ESP32-S3 (BLE)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                      ),
                       ElevatedButton.icon(
                         icon: _scanningBle
                             ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
@@ -272,6 +288,8 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
                     const SizedBox(height: 10),
                     TextField(
                       controller: _ssidCtrl,
+                      autocorrect: false,
+                      enableSuggestions: false,
                       decoration: const InputDecoration(
                         labelText: '2.4 GHz Wi-Fi SSID',
                         hintText: 'Tap a network above or enter SSID manually',
@@ -282,6 +300,8 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
                       controller: _wifiPassCtrl,
                       focusNode: _wifiPassFocus,
                       obscureText: _obscureWifi,
+                      autocorrect: false,
+                      enableSuggestions: false,
                       decoration: InputDecoration(
                         labelText: _selectedWifi?.authRequired == false ? 'Wi-Fi Password (Open network)' : 'Wi-Fi Password',
                         suffixIcon: IconButton(
@@ -304,39 +324,56 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
                 children: [
                   const Text('3. Device Details & Cloud Pairing', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 12),
-                  TextField(controller: _deviceIdCtrl, decoration: const InputDecoration(labelText: 'Device ID (e.g. SEM_ESP32S3_01)')),
-                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _deviceIdCtrl,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: const InputDecoration(labelText: 'Device ID (e.g. SEM_ESP32S3_01)'),
+                  ),
+                  const SizedBox(height: 12),
                   TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Device Name (e.g. SEM Meter 01)')),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   TextField(controller: _locationCtrl, decoration: const InputDecoration(labelText: 'Panel Location (e.g. Main Electrical Panel)')),
                   if (_selectedBle != null) ...[
-                    const SizedBox(height: 10),
-                    ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      title: const Text('EMQX MQTT Credentials', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                      subtitle: const Text(
-                        'Enter on first setup (or leave password blank if already saved on ESP32)',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      children: [
-                        TextField(
-                          controller: _mqttUserCtrl,
-                          decoration: const InputDecoration(labelText: 'MQTT Username (e.g. SEM_ESP32S3_01)'),
+                    const SizedBox(height: 8),
+                    Theme(
+                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        initiallyExpanded: true,
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: const EdgeInsets.only(top: 12, bottom: 4),
+                        shape: const Border(),
+                        collapsedShape: const Border(),
+                        title: const Text('EMQX MQTT Credentials', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                        subtitle: const Text(
+                          'Enter exact case-sensitive user & password from EMQX Cloud Authentication (or leave blank if already saved)',
+                          style: TextStyle(fontSize: 12),
                         ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: _mqttPassCtrl,
-                          obscureText: _obscureMqtt,
-                          decoration: InputDecoration(
-                            labelText: 'MQTT Password',
-                            suffixIcon: IconButton(
-                              icon: Icon(_obscureMqtt ? Icons.visibility : Icons.visibility_off),
-                              onPressed: () => setState(() => _obscureMqtt = !_obscureMqtt),
+                        children: [
+                          TextField(
+                            controller: _mqttUserCtrl,
+                            autocorrect: false,
+                            enableSuggestions: false,
+                            decoration: const InputDecoration(labelText: 'MQTT Username (e.g. SEM_ESP32S3_01)'),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _mqttPassCtrl,
+                            obscureText: _obscureMqtt,
+                            autocorrect: false,
+                            enableSuggestions: false,
+                            decoration: InputDecoration(
+                              labelText: 'MQTT Password',
+                              suffixIcon: IconButton(
+                                icon: Icon(_obscureMqtt ? Icons.visibility : Icons.visibility_off),
+                                onPressed: () => setState(() => _obscureMqtt = !_obscureMqtt),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                      ],
+                          const SizedBox(height: 6),
+                        ],
+                      ),
                     ),
                   ],
                   SwitchListTile(
@@ -346,16 +383,48 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
                     onChanged: (v) => setState(() => _eligible = v),
                   ),
                   if (_errorMsg != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(_errorMsg!, style: const TextStyle(color: SemColors.error, fontWeight: FontWeight.w600)),
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: SemColors.error.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: SemColors.error.withValues(alpha: 0.6)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 2),
+                            child: Icon(Icons.error_outline_rounded, color: SemColors.error, size: 18),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMsg!,
+                              style: TextStyle(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFFFF8A80)
+                                    : SemColors.error,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  if (_statusMsg != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                  if (_errorMsg == null && _statusMsg != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: SemColors.accentPrimary(context).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       child: Text(
                         _statusMsg!,
-                        style: TextStyle(color: SemColors.accentPrimary(context), fontWeight: FontWeight.w600),
+                        style: TextStyle(color: SemColors.accentPrimary(context), fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                     ),
                   ElevatedButton(

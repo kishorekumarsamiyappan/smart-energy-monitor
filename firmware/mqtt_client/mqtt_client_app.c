@@ -173,9 +173,15 @@ static void mqtt_event_handler(void *arg, esp_event_base_t base, int32_t event_i
             if (s_on_state) s_on_state(false, false);
             break;
         case MQTT_EVENT_ERROR:
-            if (ev && ev->error_handle &&
-                ev->error_handle->error_type == MQTT_ERROR_TYPE_CONNECTION_REFUSED) {
-                if (s_on_state) s_on_state(false, true);
+            if (ev && ev->error_handle) {
+                if (ev->error_handle->error_type == MQTT_ERROR_TYPE_CONNECTION_REFUSED) {
+                    ESP_LOGE(TAG, "EMQX refused MQTT connection (CONNACK return_code=%d); check EMQX Authentication user/password and ACL",
+                             (int)ev->error_handle->connect_return_code);
+                    if (s_on_state) s_on_state(false, true);
+                } else {
+                    ESP_LOGW(TAG, "MQTT transport error_type=%d tls_err=%d",
+                             (int)ev->error_handle->error_type, (int)ev->error_handle->esp_tls_last_esp_err);
+                }
             }
             break;
         case MQTT_EVENT_DATA:
