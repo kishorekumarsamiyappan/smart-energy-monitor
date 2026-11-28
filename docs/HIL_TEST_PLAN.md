@@ -9,7 +9,7 @@
 
 ## 2. Linear & Phase Calibration (Isolated Variac + Reference Load)
 1. **Voltage Calibration (`ZMPT101B`)**: Step isolated AC source at 180 V, 210 V, 230 V, 250 V against True-RMS reference voltmeter. Adjust `voltageCalibrationFactor` until error `< ±0.5%`.
-2. **Current Calibration (`SCT-013 30A/1V`)**: Clamp SCT-013 around a single conductor (never twin-core cable!) feeding purely resistive load steps (1 A, 5 A, 10 A, 20 A, 28 A). Adjust `currentCalibrationFactor` until error `< ±1.0%`.
+2. **Current Calibration (`SCT-013-000 100A/50mA + 22Ω burden`)**: Clamp SCT-013-000 around a single conductor (never twin-core cable!) feeding purely resistive load steps (1 A, 5 A, 10 A, 20 A, 50 A within bench limits). Adjust `currentCalibrationFactor` around the `23.202` baseline until error `< ±1.0%`.
 3. **Phase Correction & Power Factor**: Feed resistive load (`PF ≈ 1.00`) and inductive/motor load (`PF ≈ 0.65–0.85`). Tune `phaseCorrectionDeg` until active power `P` matches reference wattmeter within `±1.5%` across both unity and lagging PF.
 4. **Frequency Accuracy**: Compare reported `frequency_hz` against reference counter across 49.0 Hz – 51.0 Hz (`±0.05 Hz` tolerance).
 

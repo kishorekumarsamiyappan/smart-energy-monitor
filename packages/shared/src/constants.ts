@@ -32,10 +32,20 @@ export const DESIGN_TOKENS = {
   },
 } as const;
 
+export const DEFAULT_CURRENT_SENSOR_MODEL = 'SCT-013-000 (100A/50mA + 22Ω Burden)';
+
+export function normalizeCurrentSensorModel(raw?: unknown): string {
+  const s = typeof raw === 'string' ? raw.trim() : '';
+  if (!s || /30\s*A|1\s*V|built-in burden/i.test(s)) {
+    return DEFAULT_CURRENT_SENSOR_MODEL;
+  }
+  return s;
+}
+
 export const HARDWARE_SPEC = {
   controller: 'ESP32-S3 DevKit',
   voltageSensor: 'ZMPT101B (GPIO 4, Cal 311.5)',
-  currentSensor: 'SCT-013-000 (GPIO 5, 22Ω Burden, Cal 23.202)',
+  currentSensor: 'SCT-013-000 100A/50mA (GPIO 5, 22Ω Burden, Cal 23.202)',
   adc: 'ESP32-S3 Internal 12-bit ADC1 (5 kSPS)',
   phaseSystem: 'Single-phase AC',
   nominalVoltageV: 230,

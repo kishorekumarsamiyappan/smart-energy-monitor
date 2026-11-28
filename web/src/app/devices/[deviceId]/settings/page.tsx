@@ -14,7 +14,7 @@ import {
   Sliders,
   Trash2,
 } from 'lucide-react';
-import { formatKolkataDateTime, HARDWARE_SPEC, StatusLedMode } from '@sem/shared';
+import { formatKolkataDateTime, HARDWARE_SPEC, normalizeCurrentSensorModel, StatusLedMode } from '@sem/shared';
 import { AppShell } from '@/components/layout/AppShell';
 import { StatusBadge } from '@/components/ui/Primitives';
 import { useAuth } from '@/lib/auth-context';
@@ -173,7 +173,7 @@ export default function DeviceSettingsPage() {
                 </div>
                 <div className="sem-lavender-card" style={{ padding: 12 }}>
                   <div style={{ fontSize: 12, color: 'var(--sem-muted)', fontWeight: 700 }}>Current Sensor</div>
-                  <div style={{ fontSize: 15, fontWeight: 700 }}>{cfg?.currentSensorModel ?? HARDWARE_SPEC.currentSensor}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700 }}>{normalizeCurrentSensorModel(cfg?.currentSensorModel) || HARDWARE_SPEC.currentSensor}</div>
                   <div style={{ fontSize: 12, color: 'var(--sem-muted)' }}>100A:50mA CT with external 22 Ω burden resistor (GPIO 5 / ADC1_CH4)</div>
                 </div>
                 <div className="sem-lavender-card" style={{ padding: 12 }}>

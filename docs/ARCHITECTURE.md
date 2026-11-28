@@ -1,13 +1,13 @@
 # Smart Energy Monitor — System Architecture
 
 ## 1. Platform Overview
-Smart Energy Monitor is a unified full-stack IoT platform for single-phase AC (230 V, 50 Hz, up to 30 A) domestic monitoring and Tamil Nadu (TNEB / TNPDCL LT-IA) bi-monthly electricity bill estimation.
+Smart Energy Monitor is a unified full-stack IoT platform for single-phase AC (230 V, 50 Hz, up to 100 A) domestic monitoring and Tamil Nadu (TNEB / TNPDCL LT-IA) bi-monthly electricity bill estimation.
 
 ```
-[ZMPT101B + SCT-013 30A/1V]
-           │ (Signal Conditioned Differential)
+[ZMPT101B + SCT-013-000 100A/50mA + 22Ω]
+           │ (Signal Conditioned & Mid-Rail Biased)
            ▼
-   [ADS131M02 24-bit ADC] ──(SPI + DRDY)──▶ [ESP32-S3 Firmware]
+[ESP32-S3 12-bit ADC1] ──(5 kSPS RMS)──▶ [ESP32-S3 Firmware]
                                                │        ▲
                           BLE Provisioning ◀───┘        │ MQTT over TLS (8883)
                           (Flutter Android)             ▼

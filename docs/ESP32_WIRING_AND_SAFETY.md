@@ -7,20 +7,17 @@
 - **MCU**: ESP32-S3 DevKit (dual-core Xtensa LX7, hardware SPI + NimBLE + Wi-Fi)
 - **ADC**: TI ADS131M02 (24-bit simultaneous 2-channel Sigma-Delta SPI ADC, internal ±1.2 V reference @ Gain=1)
 - **Voltage Sensor**: ZMPT101B AC voltage transformer module (isolated potential transformer + op-amp stage)
-- **Current Sensor**: SCT-013 **30 A / 1 V** voltage-output split-core CT (**has a built-in internal burden resistor** — **DO NOT** add an external burden resistor!)
-- **Isolated Power Supply**: Certified reinforced-isolation 230 V AC → 5 V DC medical/industrial module (≥ 3 kVrms isolation) + low-noise LDO 3.3 V for ADS131M02 analog/digital rails (`AVDD` / `DVDD`).
+- **Current Sensor**: SCT-013-000 **100 A / 50 mA** current-output split-core CT (**NO built-in burden resistor** — requires an **external 22 Ω precision burden resistor** + mid-rail bias network)
 
-## 2. Signal Conditioning Requirements (ADS131M02)
-1. **Never connect raw unconditioned AC waveforms to an ESP32 GPIO or ADS131M02 input pin.**
-2. **ADS131M02 Input Limits (Gain = 1)**: Differential input range `±1.2 V` (`V_AINxP - V_AINxN`). Absolute pin voltage must stay inside `[AGND - 0.3 V, AVDD + 0.3 V]`.
-3. **ZMPT101B Conditioning (Channel 0)**:
-   - Verify your specific ZMPT101B module's output swing at 265 Vrms overvoltage margin (many modules output centered at `VCC/2` with up to ±1.5 V–2.0 V peak).
-   - AC-couple via non-polarized capacitor (e.g., 10 µF), bias common-mode at `AVDD / 2` (1.65 V) into `AIN0N`, and attenuate `AIN0P` with precision 0.1% resistors + anti-aliasing RC filter (e.g., `fc ≈ 1.5 kHz`) + bidirectional Schottky/TVS clamp so differential voltage never exceeds `±1.0 Vpeak` at 275 Vrms mains.
-4. **SCT-013 30A / 1V Conditioning (Channel 1)**:
-   - At 30 Arms rated current, the built-in burden produces `1.0 Vrms` = `1.414 Vpeak`.
-   - Note that `1.414 Vpeak` exceeds the ADS131M02 `±1.2 V` Gain=1 full-scale range!
-   - Use a precision **0.5× resistive divider** (`10 kΩ` / `10 kΩ`, 0.1%) referenced to mid-rail bias (`AVDD/2`) + `100 nF` anti-aliasing filter + TVS clamp so 30 Arms maps cleanly to `±0.707 Vpeak` (leaving comfortable crest-factor headroom up to ~50 A peaks without clipping!).
-   - **CRITICAL**: Because the 30A/1V model already contains an internal burden resistor, adding another low-value burden resistor across the jack will halve/distort sensitivity and overheat the CT.
+## 2. Signal Conditioning Requirements (ESP32-S3 12-bit ADC1)
+1. **Never connect raw unconditioned AC waveforms to an ESP32 GPIO pin.**
+2. **ESP32-S3 ADC1 Input Limits (`ADC_ATTEN_DB_12`)**: Keep all ADC pin voltages strictly inside `[0 V, 3.3 V]` (centered at mid-rail bias `1.65 V`).
+3. **ZMPT101B Conditioning (GPIO 4 / `ADC1_CH3`)**:
+   - Verify your specific ZMPT101B module's output swing is centered at `VCC/2` (`~1.65 V`) cleanly inside `0–3.3 V`, calibrated against a True-RMS multimeter (`VOLTAGE_CAL = 311.5`).
+4. **SCT-013-000 100A / 50mA Conditioning (GPIO 5 / `ADC1_CH4`)**:
+   - The `100 A / 50 mA` model (2000:1 turns ratio) outputs secondary current proportional to line current (`50 mArms` at `100 Arms`).
+   - Connect an external **22 Ω precision burden resistor** across the CT jack terminals (`0–50 mArms × 22 Ω = 0–1.1 Vrms`, or `±1.55 Vpeak` max), AC-coupled / biased at `1.65 V` (`10 kΩ / 10 kΩ` divider + `10 µF` bypass capacitor) into GPIO 5 (`CALIBRATION = 23.202` bench-calibrated with clamp meter).
+   - **CRITICAL**: Because `SCT-013-000` is a **current-output CT** (without an internal burden resistor), **never energize the monitored circuit while the CT jack is unplugged or without the 22 Ω burden resistor connected**, as hazardous secondary voltage spikes can develop.
 
 ## 3. Isolation, Creepage, Clearance & Protection
 - Maintain **≥ 6.4 mm creepage and ≥ 4.0 mm clearance** (IEC 62368-1 / IEC 61010-1 reinforced/basic spacing for 230 Vrms CAT II/III) between primary HV traces and secondary LV circuitry, with milled isolation slots under the ZMPT101B transformer and AC-DC PSU.

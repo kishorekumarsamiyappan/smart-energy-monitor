@@ -40,7 +40,7 @@ class DeviceSettingsScreen extends StatelessWidget {
             title: 'Sensor Settings',
             onTap: () => _showDetailSheet(context, 'Sensor Settings', [
               ('Voltage Sensor', cfg?.voltageSensorModel ?? 'ZMPT101B (GPIO 4)'),
-              ('Current Sensor', cfg?.currentSensorModel ?? 'SCT-013-000 + 22Ω (GPIO 5)'),
+              ('Current Sensor', cfg?.currentSensorModel ?? DeviceSensorConfigModel.defaultCurrentSensorModel),
               ('ADC', cfg?.adcModel ?? 'ESP32-S3 12-bit ADC1 @ 5 kSPS'),
             ]),
           ),

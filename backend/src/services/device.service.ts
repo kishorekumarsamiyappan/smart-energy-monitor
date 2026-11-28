@@ -1,6 +1,14 @@
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
-import { Device, DeviceIoConfig, DeviceSensorConfig, StatusLedMode, UserRole } from '@sem/shared';
+import {
+  DEFAULT_CURRENT_SENSOR_MODEL,
+  Device,
+  DeviceIoConfig,
+  DeviceSensorConfig,
+  normalizeCurrentSensorModel,
+  StatusLedMode,
+  UserRole,
+} from '@sem/shared';
 import { DatabaseClient } from '../db/database.js';
 import { AppError } from '../middleware/error-handler.js';
 
@@ -149,9 +157,9 @@ export class DeviceService {
       [created.id],
     );
     await this.db.query(
-      `INSERT INTO calibration_records (device_uuid, calibrated_by_user_id, notes)
-       VALUES ($1, $2, 'Initial factory baseline on pairing')`,
-      [created.id, userId],
+      `INSERT INTO calibration_records (device_uuid, current_sensor_model, calibrated_by_user_id, notes)
+       VALUES ($1, $2, $3, 'Initial factory baseline on pairing')`,
+      [created.id, DEFAULT_CURRENT_SENSOR_MODEL, userId],
     );
     await this.db.query(
       `INSERT INTO device_io_configs (device_uuid) VALUES ($1) ON CONFLICT (device_uuid) DO NOTHING`,
@@ -199,8 +207,8 @@ export class DeviceService {
     const st = statusRes.rows[0];
     return {
       deviceId: deviceCode,
-      voltageSensorModel: cal?.voltage_sensor_model ?? 'ZMPT101B',
-      currentSensorModel: cal?.current_sensor_model ?? 'SCT-013 (30A / 1V built-in burden)',
+      voltageSensorModel: cal?.voltage_sensor_model ?? 'ZMPT101B (GPIO 4)',
+      currentSensorModel: normalizeCurrentSensorModel(cal?.current_sensor_model),
       adcModel: cal?.adc_model ?? 'ADS131M02',
       voltageCalibrationFactor: cal ? Number(cal.voltage_cal_factor) : 1.0,
       currentCalibrationFactor: cal ? Number(cal.current_cal_factor) : 1.0,
@@ -245,11 +253,12 @@ export class DeviceService {
       }
       await this.db.query(
         `INSERT INTO calibration_records (
-          device_uuid, voltage_cal_factor, current_cal_factor, phase_correction_deg,
+          device_uuid, current_sensor_model, voltage_cal_factor, current_cal_factor, phase_correction_deg,
           calibration_status, calibrated_by_user_id, notes
-        ) VALUES ($1, $2, $3, $4, $5, $6, 'Admin recalibration update')`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'Admin recalibration update')`,
         [
           dev.id,
+          DEFAULT_CURRENT_SENSOR_MODEL,
           patch.sensorConfig.voltageCalibrationFactor ?? 1.0,
           patch.sensorConfig.currentCalibrationFactor ?? 1.0,
           patch.sensorConfig.phaseCorrectionDeg ?? 0.0,

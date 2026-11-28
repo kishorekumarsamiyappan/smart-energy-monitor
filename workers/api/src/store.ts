@@ -4,6 +4,7 @@ import {
   BillingCycleRecord,
   calculateTnebBill,
   compareSemver,
+  DEFAULT_CURRENT_SENSOR_MODEL,
   Device,
   DeviceIoConfig,
   DeviceRelay,
@@ -13,6 +14,7 @@ import {
   formatKolkataDate,
   INDICATIVE_2026_TNEB_LT1A_TARIFF,
   ManualReadingRecord,
+  normalizeCurrentSensorModel,
   OtaJobStatus,
   RelaySchedule,
   RESERVED_ESP32_GPIOS,
@@ -663,7 +665,10 @@ export class SupabaseStore implements WorkerStore {
       }),
       this.rest('device_status', { method: 'POST', body: JSON.stringify({ device_uuid: uuid, is_online: false }) }),
       this.rest('energy_counters', { method: 'POST', body: JSON.stringify({ device_uuid: uuid, lifetime_kwh: 0 }) }),
-      this.rest('calibration_records', { method: 'POST', body: JSON.stringify({ device_uuid: uuid }) }),
+      this.rest('calibration_records', {
+        method: 'POST',
+        body: JSON.stringify({ device_uuid: uuid, current_sensor_model: DEFAULT_CURRENT_SENSOR_MODEL }),
+      }),
       this.rest('device_io_configs', { method: 'POST', body: JSON.stringify({ device_uuid: uuid }) }),
     ]);
 
@@ -721,6 +726,7 @@ export class SupabaseStore implements WorkerStore {
         method: 'POST',
         body: JSON.stringify({
           device_uuid: deviceUuid,
+          current_sensor_model: normalizeCurrentSensorModel(prev.current_sensor_model),
           voltage_cal_factor: patch.sensorConfig.voltageCalibrationFactor ?? prev.voltage_cal_factor ?? 1.0,
           current_cal_factor: patch.sensorConfig.currentCalibrationFactor ?? prev.current_cal_factor ?? 1.0,
           phase_correction_deg: patch.sensorConfig.phaseCorrectionDeg ?? prev.phase_correction_deg ?? 0.0,
@@ -748,7 +754,7 @@ export class SupabaseStore implements WorkerStore {
     return {
       deviceId: deviceCode,
       voltageSensorModel: String(c.voltage_sensor_model ?? 'ZMPT101B (GPIO 4)'),
-      currentSensorModel: String(c.current_sensor_model ?? 'SCT-013-000 (GPIO 5, 22Ω Burden)'),
+      currentSensorModel: normalizeCurrentSensorModel(c.current_sensor_model),
       adcModel: String(c.adc_model ?? 'ESP32-S3 12-bit ADC1'),
       voltageCalibrationFactor: Number(c.voltage_cal_factor ?? 1.0),
       currentCalibrationFactor: Number(c.current_cal_factor ?? 1.0),
@@ -2071,8 +2077,8 @@ export class MemoryWorkerStore implements WorkerStore {
     this.devices.set(uuid, dev);
     this.sensorConfigs.set(uuid, {
       deviceId: code,
-      voltageSensorModel: 'ZMPT101B',
-      currentSensorModel: 'SCT-013 (30A / 1V built-in burden)',
+      voltageSensorModel: 'ZMPT101B (GPIO 4)',
+      currentSensorModel: DEFAULT_CURRENT_SENSOR_MODEL,
       adcModel: 'ADS131M02',
       voltageCalibrationFactor: 1.0,
       currentCalibrationFactor: 1.0,

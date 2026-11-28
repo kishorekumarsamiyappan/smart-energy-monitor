@@ -50,7 +50,7 @@ export interface Device {
 export interface DeviceSensorConfig {
   deviceId: string;
   voltageSensorModel: string; // ZMPT101B
-  currentSensorModel: string; // SCT-013 30A/1V
+  currentSensorModel: string; // SCT-013-000 (100A / 50mA + 22Ω Burden)
   adcModel: string; // ADS131M02
   voltageCalibrationFactor: number;
   currentCalibrationFactor: number;

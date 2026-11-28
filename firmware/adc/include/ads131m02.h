@@ -9,9 +9,9 @@ extern "C" {
 #endif
 
 /**
- * ADS131M02 Simultaneous 2-Channel 24-bit Delta-Sigma SPI ADC Driver.
- * Channel 0: Conditioned ZMPT101B AC voltage waveform
- * Channel 1: Conditioned SCT-013 (30A / 1V) AC current waveform
+ * ESP32-S3 Internal 2-Channel 12-bit ADC1 Driver (legacy ADS131M02 API interface).
+ * Channel 0 (GPIO 4): Conditioned ZMPT101B AC voltage waveform
+ * Channel 1 (GPIO 5): Conditioned SCT-013-000 (100A / 50mA + 22 Ohm external burden) AC current waveform
  */
 typedef struct {
     int spi_host;

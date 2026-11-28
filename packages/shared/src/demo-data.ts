@@ -76,7 +76,7 @@ export const DEMO_SENSOR_CONFIG: Record<string, DeviceSensorConfig> = {
   'DEMO-SEM-001': {
     deviceId: 'DEMO-SEM-001',
     voltageSensorModel: 'ZMPT101B',
-    currentSensorModel: 'SCT-013 (30A / 1V built-in burden)',
+    currentSensorModel: 'SCT-013-000 (100A/50mA + 22Ω Burden)',
     adcModel: 'ADS131M02',
     voltageCalibrationFactor: 1.0042,
     currentCalibrationFactor: 0.9965,
@@ -91,7 +91,7 @@ export const DEMO_SENSOR_CONFIG: Record<string, DeviceSensorConfig> = {
   'DEMO-SEM-002': {
     deviceId: 'DEMO-SEM-002',
     voltageSensorModel: 'ZMPT101B',
-    currentSensorModel: 'SCT-013 (30A / 1V built-in burden)',
+    currentSensorModel: 'SCT-013-000 (100A/50mA + 22Ω Burden)',
     adcModel: 'ADS131M02',
     voltageCalibrationFactor: 1.0,
     currentCalibrationFactor: 1.0,

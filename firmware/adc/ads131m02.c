@@ -8,7 +8,7 @@ static const char *TAG = "SEM_ADC";
 
 // ESP32-S3 Internal 12-bit ADC1 channels matching bench-calibrated hardware:
 // - ZMPT101B AC Voltage Sensor -> GPIO 4 (ADC1_CHANNEL_3)
-// - SCT-013-000 AC Current Sensor (22 Ohm burden) -> GPIO 5 (ADC1_CHANNEL_4)
+// - SCT-013-000 (100A/50mA + 22 Ohm burden) AC Current Sensor -> GPIO 5 (ADC1_CHANNEL_4)
 #define SEM_ADC_VOLT_CH ((adc_channel_t)ADC1_GPIO4_CHANNEL)
 #define SEM_ADC_CURR_CH ((adc_channel_t)ADC1_GPIO5_CHANNEL)
 

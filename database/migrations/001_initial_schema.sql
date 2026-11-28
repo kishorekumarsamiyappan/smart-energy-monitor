@@ -304,7 +304,7 @@ CREATE TABLE IF NOT EXISTS calibration_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   device_uuid UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
   voltage_sensor_model VARCHAR(40) NOT NULL DEFAULT 'ZMPT101B',
-  current_sensor_model VARCHAR(60) NOT NULL DEFAULT 'SCT-013 (30A / 1V built-in burden)',
+  current_sensor_model VARCHAR(60) NOT NULL DEFAULT 'SCT-013-000 (100A/50mA + 22Ω Burden)',
   adc_model VARCHAR(40) NOT NULL DEFAULT 'ADS131M02',
   voltage_cal_factor NUMERIC(10, 6) NOT NULL DEFAULT 1.0,
   current_cal_factor NUMERIC(10, 6) NOT NULL DEFAULT 1.0,

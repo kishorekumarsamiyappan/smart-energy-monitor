@@ -119,7 +119,7 @@ class AppState extends ChangeNotifier {
       _sensorConfigByDevice[dev.deviceId] = DeviceSensorConfigModel(
         deviceId: dev.deviceId,
         voltageSensorModel: 'ZMPT101B',
-        currentSensorModel: 'SCT-013 (30A / 1V built-in burden)',
+        currentSensorModel: DeviceSensorConfigModel.defaultCurrentSensorModel,
         adcModel: 'ADS131M02',
         voltageCalibrationFactor: 1.0042,
         currentCalibrationFactor: 0.9965,

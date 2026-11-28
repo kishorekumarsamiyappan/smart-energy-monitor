@@ -5,7 +5,7 @@ void sensors_get_default_scaling(sensor_scaling_t *out) {
     if (!out) return;
     // Calibrated ZMPT101B constant on ESP32-S3 GPIO 4 (12-bit ADC_ATTEN_DB_12)
     out->zmpt101b_v_per_adc_volt = 311.5f;
-    // Calibrated SCT-013-000 (22 Ohm burden) constant on ESP32-S3 GPIO 5
+    // Calibrated SCT-013-000 (100A/50mA + 22 Ohm burden) constant on ESP32-S3 GPIO 5
     out->sct013_amps_per_volt = 23.202f;
 }
 

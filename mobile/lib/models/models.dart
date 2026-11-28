@@ -151,11 +151,21 @@ class DeviceSensorConfigModel {
     required this.sensorHealthStatus,
   });
 
+  static const String defaultCurrentSensorModel = 'SCT-013-000 (100A/50mA + 22Ω Burden)';
+
+  static String _normalizeCurrentSensorModel(dynamic raw) {
+    final s = raw?.toString().trim() ?? '';
+    if (s.isEmpty || RegExp(r'30\s*A|1\s*V|built-in burden', caseSensitive: false).hasMatch(s)) {
+      return defaultCurrentSensorModel;
+    }
+    return s;
+  }
+
   factory DeviceSensorConfigModel.fromJson(Map<String, dynamic> json) =>
       DeviceSensorConfigModel(
         deviceId: json['deviceId']?.toString() ?? '',
         voltageSensorModel: json['voltageSensorModel']?.toString() ?? 'ZMPT101B (GPIO 4)',
-        currentSensorModel: json['currentSensorModel']?.toString() ?? 'SCT-013-000 + 22Ω (GPIO 5)',
+        currentSensorModel: _normalizeCurrentSensorModel(json['currentSensorModel']),
         adcModel: json['adcModel']?.toString() ?? 'ESP32-S3 12-bit ADC1',
         voltageCalibrationFactor: (json['voltageCalibrationFactor'] as num?)?.toDouble() ?? 1.0,
         currentCalibrationFactor: (json['currentCalibrationFactor'] as num?)?.toDouble() ?? 1.0,
