@@ -64,7 +64,7 @@ export default function AlertsPage() {
   return (
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-        <Bell size={24} color="#29378F" />
+        <Bell size={24} color="var(--sem-primary)" />
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>Alerts &amp; Threshold Rules</h1>
           <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--sem-muted)' }}>
@@ -93,7 +93,7 @@ export default function AlertsPage() {
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 290px), 1fr))', gap: 18 }}>
         {/* Alert History Feed */}
         <div className="sem-card" style={{ padding: 18 }}>
           <h2 style={{ marginTop: 0, fontSize: 17 }}>Recent Alerts ({alerts.length})</h2>

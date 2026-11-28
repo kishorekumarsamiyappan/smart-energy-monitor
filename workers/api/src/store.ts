@@ -23,7 +23,7 @@ import {
   UserProfile,
   UserRole,
 } from '@sem/shared';
-import { hashPassword, sha256Hex, verifyPassword } from './crypto';
+import { hashPassword, sha256Hex, signJwt, verifyJwt, verifyPassword } from './crypto';
 import { WorkerEnv } from './types';
 
 export class WorkerHttpError extends Error {
@@ -285,11 +285,13 @@ export class SupabaseStore implements WorkerStore {
   private readonly baseUrl: string;
   private readonly serviceKey: string;
   private readonly defaultGithubRepo: string;
+  private readonly jwtSecret: string;
 
   constructor(env: WorkerEnv) {
     this.baseUrl = (env.SUPABASE_URL ?? '').trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/$/, '');
     this.serviceKey = (env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim();
     this.defaultGithubRepo = env.GITHUB_FIRMWARE_REPO || 'owner/smart-energy-monitor-firmware';
+    this.jwtSecret = env.JWT_SECRET || '';
   }
 
   private assertConfigured(): void {
@@ -455,29 +457,37 @@ export class SupabaseStore implements WorkerStore {
   }
 
   async createResetToken(email: string): Promise<string | null> {
+    const clean = email.trim().toLowerCase();
     const rows = await this.rest<Array<Record<string, unknown>>>(
-      `users?email=eq.${encodeURIComponent(email.trim().toLowerCase())}&select=id&limit=1`,
+      `users?email=eq.${encodeURIComponent(clean)}&select=id,password_hash&limit=1`,
     );
-    if (!rows[0]) return null;
-    const raw = crypto.randomUUID() + crypto.randomUUID().replaceAll('-', '');
-    SupabaseStore.resetTokens.set(await sha256Hex(raw), {
-      userId: String(rows[0].id),
-      expiresAt: Date.now() + 1800_000,
-    });
-    return raw;
+    if (!rows[0] || !this.jwtSecret) return null;
+    const ph = (await sha256Hex(String(rows[0].password_hash ?? ''))).slice(0, 16);
+    return signJwt({ purpose: 'pwd_reset', sub: String(rows[0].id), ph }, this.jwtSecret, 1800);
   }
 
   async consumeResetToken(token: string, newPassword: string): Promise<void> {
-    const hashed = await sha256Hex(token);
-    const rec = SupabaseStore.resetTokens.get(hashed);
-    if (!rec || rec.expiresAt < Date.now()) {
+    if (!this.jwtSecret) {
+      throw new WorkerHttpError(503, 'JWT_SECRET is not configured on API worker.', 'CONFIG_MISSING');
+    }
+    const decoded = await verifyJwt<{ purpose?: string; sub?: string; ph?: string }>(token.trim(), this.jwtSecret);
+    if (!decoded || decoded.purpose !== 'pwd_reset' || !decoded.sub || !decoded.ph) {
       throw new WorkerHttpError(400, 'Reset token is invalid or expired.', 'INVALID_RESET_TOKEN');
     }
-    await this.rest(`users?id=eq.${encodeURIComponent(rec.userId)}`, {
+    const rows = await this.rest<Array<Record<string, unknown>>>(
+      `users?id=eq.${encodeURIComponent(decoded.sub)}&select=id,password_hash&limit=1`,
+    );
+    if (!rows[0]) {
+      throw new WorkerHttpError(400, 'Reset token is invalid or expired.', 'INVALID_RESET_TOKEN');
+    }
+    const currentPh = (await sha256Hex(String(rows[0].password_hash ?? ''))).slice(0, 16);
+    if (currentPh !== decoded.ph) {
+      throw new WorkerHttpError(400, 'Reset token has already been used.', 'INVALID_RESET_TOKEN');
+    }
+    await this.rest(`users?id=eq.${encodeURIComponent(decoded.sub)}`, {
       method: 'PATCH',
       body: JSON.stringify({ password_hash: await hashPassword(newPassword) }),
     });
-    SupabaseStore.resetTokens.delete(hashed);
   }
 
   private mapInternalDevice(d: Record<string, unknown>, st?: Record<string, unknown>): InternalDevice {
@@ -491,9 +501,9 @@ export class SupabaseStore implements WorkerStore {
       serviceCategory: String(d.service_category ?? 'LT-IA'),
       consumerEligibleForSubsidy: Boolean(d.consumer_eligible_for_subsidy),
       meterSerialNumber: d.meter_serial_number ? String(d.meter_serial_number) : null,
-      firmwareVersion: String(d.firmware_version ?? '1.0.0'),
-      hardwareVersion: String(d.hardware_version ?? 'ESP32-S3-ADS131M02-REV2'),
-      telemetryIntervalSec: Number(d.telemetry_interval_sec ?? 5),
+      firmwareVersion: String(d.firmware_version ?? '1.3.1'),
+      hardwareVersion: String(d.hardware_version ?? 'ESP32-S3-ADC1-REV3'),
+      telemetryIntervalSec: Number(d.telemetry_interval_sec ?? 10),
       monitoringMode: (d.monitoring_mode as 'automatic' | 'manual_preferred') ?? 'automatic',
       isOnline: Boolean(st?.is_online ?? false),
       wifiRssiDbm: st?.wifi_rssi_dbm != null ? Number(st.wifi_rssi_dbm) : null,
@@ -563,6 +573,7 @@ export class SupabaseStore implements WorkerStore {
         service_category: input.serviceCategory || 'LT-IA',
         consumer_eligible_for_subsidy: input.consumerEligibleForSubsidy,
         meter_serial_number: input.meterSerialNumber?.trim() || null,
+        telemetry_interval_sec: 10,
       }),
     });
     const devRow = inserted[0];
@@ -581,18 +592,6 @@ export class SupabaseStore implements WorkerStore {
       this.rest('energy_counters', { method: 'POST', body: JSON.stringify({ device_uuid: uuid, lifetime_kwh: 0 }) }),
       this.rest('calibration_records', { method: 'POST', body: JSON.stringify({ device_uuid: uuid }) }),
       this.rest('device_io_configs', { method: 'POST', body: JSON.stringify({ device_uuid: uuid }) }),
-      this.rest('device_relays', {
-        method: 'POST',
-        body: JSON.stringify({
-          device_uuid: uuid,
-          channel_index: 1,
-          name: 'Confirmed Relay 1',
-          gpio_pin: 4,
-          active_high: true,
-          fail_safe_state: false,
-          is_confirmed_default: true,
-        }),
-      }),
     ]);
 
     return {
@@ -675,9 +674,9 @@ export class SupabaseStore implements WorkerStore {
     const st = stRows[0] ?? {};
     return {
       deviceId: deviceCode,
-      voltageSensorModel: String(c.voltage_sensor_model ?? 'ZMPT101B'),
-      currentSensorModel: String(c.current_sensor_model ?? 'SCT-013 (30A / 1V built-in burden)'),
-      adcModel: String(c.adc_model ?? 'ADS131M02'),
+      voltageSensorModel: String(c.voltage_sensor_model ?? 'ZMPT101B (GPIO 4)'),
+      currentSensorModel: String(c.current_sensor_model ?? 'SCT-013-000 (GPIO 5, 22Ω Burden)'),
+      adcModel: String(c.adc_model ?? 'ESP32-S3 12-bit ADC1'),
       voltageCalibrationFactor: Number(c.voltage_cal_factor ?? 1.0),
       currentCalibrationFactor: Number(c.current_cal_factor ?? 1.0),
       phaseCorrectionDeg: Number(c.phase_correction_deg ?? 0.0),
@@ -976,23 +975,10 @@ export class SupabaseStore implements WorkerStore {
   }
 
   async listRelays(deviceUuid: string, deviceCode: string): Promise<DeviceRelay[]> {
-    let rows = await this.rest<Array<Record<string, unknown>>>(
+    const rows = await this.rest<Array<Record<string, unknown>>>(
       `device_relays?device_uuid=eq.${deviceUuid}&order=channel_index.asc`,
     );
-    if (rows.length === 0) {
-      rows = await this.rest<Array<Record<string, unknown>>>('device_relays', {
-        method: 'POST',
-        body: JSON.stringify({
-          device_uuid: deviceUuid,
-          channel_index: 1,
-          name: 'Confirmed Relay 1',
-          gpio_pin: 4,
-          active_high: true,
-          fail_safe_state: false,
-          is_confirmed_default: true,
-        }),
-      });
-    }
+    if (rows.length === 0) return [];
     const scheds = await this.rest<Array<Record<string, unknown>>>(
       `relay_schedules?device_uuid=eq.${deviceUuid}&order=created_at.asc`,
     );
@@ -1039,7 +1025,7 @@ export class SupabaseStore implements WorkerStore {
     if (existing.some((r) => r.gpioPin === input.gpioPin)) {
       throw new WorkerHttpError(409, `GPIO ${input.gpioPin} is already used by another relay.`, 'DUPLICATE_GPIO');
     }
-    const nextChannel = Math.max(...existing.map((r) => r.channelIndex)) + 1;
+    const nextChannel = existing.length === 0 ? 1 : Math.max(...existing.map((r) => r.channelIndex)) + 1;
     const res = await this.rest<Array<Record<string, unknown>>>('device_relays', {
       method: 'POST',
       body: JSON.stringify({
@@ -1078,13 +1064,10 @@ export class SupabaseStore implements WorkerStore {
   }
 
   async deleteRelay(deviceUuid: string, relayId: string): Promise<void> {
-    const check = await this.rest<Array<{ is_confirmed_default: boolean }>>(
-      `device_relays?id=eq.${relayId}&device_uuid=eq.${deviceUuid}&select=is_confirmed_default`,
+    const check = await this.rest<Array<{ id: string }>>(
+      `device_relays?id=eq.${relayId}&device_uuid=eq.${deviceUuid}&select=id`,
     );
     if (!check[0]) throw new WorkerHttpError(404, 'Relay not found', 'RELAY_NOT_FOUND');
-    if (check[0].is_confirmed_default) {
-      throw new WorkerHttpError(400, 'Primary confirmed relay CH1 cannot be deleted.', 'CANNOT_DELETE_DEFAULT_RELAY');
-    }
     await this.rest(`device_relays?id=eq.${relayId}&device_uuid=eq.${deviceUuid}`, { method: 'DELETE' });
   }
 
@@ -1617,6 +1600,12 @@ export class SupabaseStore implements WorkerStore {
         (op === 'outside_range' && sec !== null && (obs < threshold || obs > sec));
       if (!hit) continue;
 
+      const cooldownCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const recent = await this.rest<Array<{ id: string }>>(
+        `alerts?device_uuid=eq.${deviceUuid}&alert_type=eq.${encodeURIComponent(alertType)}&status=eq.active&created_at=gte.${encodeURIComponent(cooldownCutoff)}&select=id&limit=1`,
+      );
+      if (recent.length > 0) continue;
+
       const msg = `Advisory alert (${alertType.replaceAll('_', ' ')}): observed ${obs} vs threshold ${threshold}. Not an electrical protection trip.`;
       const ins = await this.rest<Array<Record<string, unknown>>>('alerts', {
         method: 'POST',
@@ -1658,6 +1647,12 @@ export class SupabaseStore implements WorkerStore {
       `devices?device_id=eq.${encodeURIComponent(deviceCode.toUpperCase())}&select=id,owner_user_id&limit=1`,
     );
     if (!devs[0]) return;
+    const cooldownCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const recent = await this.rest<Array<{ id: string }>>(
+      `alerts?device_uuid=eq.${devs[0].id}&alert_type=eq.${encodeURIComponent(alertType)}&status=eq.active&created_at=gte.${encodeURIComponent(cooldownCutoff)}&select=id&limit=1`,
+    );
+    if (recent.length > 0) return;
+
     await this.rest('alerts', {
       method: 'POST',
       body: JSON.stringify({
@@ -1939,9 +1934,9 @@ export class MemoryWorkerStore implements WorkerStore {
       serviceCategory: input.serviceCategory || 'LT-IA',
       consumerEligibleForSubsidy: input.consumerEligibleForSubsidy,
       meterSerialNumber: input.meterSerialNumber?.trim() || null,
-      firmwareVersion: '1.2.0',
-      hardwareVersion: 'ESP32-S3-ADS131M02-REV2',
-      telemetryIntervalSec: 15,
+      firmwareVersion: '1.3.1',
+      hardwareVersion: 'ESP32-S3-ADC1-REV3',
+      telemetryIntervalSec: 10,
       monitoringMode: 'automatic',
       isOnline: false,
       wifiRssiDbm: null,
@@ -1979,21 +1974,7 @@ export class MemoryWorkerStore implements WorkerStore {
       offlineBufferedCount: 0,
     });
     this.counters.set(uuid, { lifetimeKwh: 0, lastReported: 0, resetOffsetKwh: 0, counterResetCount: 0 });
-    this.relays.set(uuid, [
-      {
-        id: crypto.randomUUID(),
-        deviceId: code,
-        channelIndex: 1,
-        name: 'Confirmed Relay 1',
-        gpioPin: 4,
-        activeHigh: true,
-        currentState: false,
-        failSafeState: false,
-        isConfirmedDefault: true,
-        updatedAt: now,
-        schedules: [],
-      },
-    ]);
+    this.relays.set(uuid, []);
     return {
       device: toPublicDevice(dev),
       mqttUsername: `sem_${code.toLowerCase()}`,
@@ -2263,7 +2244,6 @@ export class MemoryWorkerStore implements WorkerStore {
     const list = this.relays.get(deviceUuid) ?? [];
     const target = list.find((r) => r.id === relayId);
     if (!target) throw new WorkerHttpError(404, 'Relay not found', 'RELAY_NOT_FOUND');
-    if (target.isConfirmedDefault) throw new WorkerHttpError(400, 'Cannot delete CH1', 'CANNOT_DELETE_DEFAULT_RELAY');
     this.relays.set(deviceUuid, list.filter((r) => r.id !== relayId));
   }
 
@@ -2480,6 +2460,14 @@ export class MemoryWorkerStore implements WorkerStore {
       else if (r.alertType === 'low_power_factor') obs = point.powerFactor;
       if (obs === null) continue;
       if ((r.comparisonOperator === 'gt' && obs > r.thresholdValue) || (r.comparisonOperator === 'lt' && obs < r.thresholdValue)) {
+        const recent = this.alerts.find(
+          (a) =>
+            a.deviceId === point.deviceId &&
+            a.alertType === r.alertType &&
+            a.status === 'active' &&
+            Date.now() - new Date(a.createdAt).getTime() < 5 * 60 * 1000,
+        );
+        if (recent) continue;
         const ev: AlertEvent & { deviceUuid: string } = {
           id: crypto.randomUUID(),
           deviceUuid,
@@ -2503,6 +2491,14 @@ export class MemoryWorkerStore implements WorkerStore {
   async createDeviceAlert(deviceCode: string, alertType: AlertEvent['alertType'], observed: number, message: string, severity: AlertEvent['severity'] = 'warning') {
     const dev = Array.from(this.devices.values()).find((d) => d.deviceId === deviceCode.toUpperCase());
     if (!dev) return;
+    const recent = this.alerts.find(
+      (a) =>
+        a.deviceId === dev.deviceId &&
+        a.alertType === alertType &&
+        a.status === 'active' &&
+        Date.now() - new Date(a.createdAt).getTime() < 5 * 60 * 1000,
+    );
+    if (recent) return;
     this.alerts.unshift({
       id: crypto.randomUUID(),
       deviceUuid: dev.uuid,

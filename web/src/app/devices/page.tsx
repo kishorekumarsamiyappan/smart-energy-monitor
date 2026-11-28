@@ -49,10 +49,10 @@ export default function DevicesPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                 <div>
                   {renamingId === dev.deviceId ? (
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
                       <input
                         className="sem-input"
-                        style={{ width: 230 }}
+                        style={{ flex: '1 1 180px', minWidth: 0 }}
                         value={renameText}
                         onChange={(e) => setRenameText(e.target.value)}
                         aria-label="New device name"
@@ -156,12 +156,16 @@ export default function DevicesPage() {
                   className="sem-btn sem-btn-outline"
                   style={{ padding: '7px 14px', fontSize: 13, color: 'var(--sem-error)', borderColor: 'var(--sem-error)' }}
                   onClick={() => {
-                    if (window.confirm(`Remove ${dev.name} (${dev.deviceId}) from your account?`)) {
+                    if (
+                      window.confirm(
+                        `Factory Reset & Remove ${dev.name} (${dev.deviceId})? This removes the device from your account so it can be paired again fresh.`,
+                      )
+                    ) {
                       void removeDevice(dev.deviceId);
                     }
                   }}
                 >
-                  <Trash2 size={14} /> Remove
+                  <Trash2 size={14} /> Factory Reset / Remove
                 </button>
               </div>
             </div>

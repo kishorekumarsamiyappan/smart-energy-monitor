@@ -138,7 +138,7 @@ export default function ManualReadingPage() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14 }}>
-              {comparison.disagrees ? <AlertCircle size={18} color="#F58220" /> : <Scale size={18} color="#29378F" />}
+              {comparison.disagrees ? <AlertCircle size={18} color="#F58220" /> : <Scale size={18} color="var(--sem-primary)" />}
               <span>Source Comparison</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8, fontSize: 13 }}>

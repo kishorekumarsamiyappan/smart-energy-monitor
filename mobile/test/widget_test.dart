@@ -31,7 +31,7 @@ void main() {
 
     cases.forEach((units, expected) {
       final res = TnebBillingEngine.calculateIndicative2026(
-        deviceId: 'DEVICE001',
+        deviceId: 'SEM_ESP32S3_01',
         previousReading: 1000,
         currentReading: 1000.0 + units,
         previousReadingDate: '2026-09-01',

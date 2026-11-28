@@ -47,9 +47,9 @@ export default function SplashPage() {
         <BrandLogo variant="light" />
       </div>
       <div>
-        <h1 style={{ margin: '0 0 6px', fontSize: 26, fontWeight: 800 }}>Smart Energy Monitor</h1>
+        <h1 style={{ margin: '0 0 6px', fontSize: 26, fontWeight: 800 }}>SEM</h1>
         <p style={{ margin: 0, fontSize: 14, opacity: 0.85 }}>
-          Single-Phase AC Telemetry &amp; TNEB LT-IA Billing Platform
+          Smart Energy Monitor • AC Telemetry &amp; TNEB LT-IA Billing
         </p>
       </div>
       <div

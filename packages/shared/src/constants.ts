@@ -34,17 +34,19 @@ export const DESIGN_TOKENS = {
 
 export const HARDWARE_SPEC = {
   controller: 'ESP32-S3 DevKit',
-  voltageSensor: 'ZMPT101B',
-  currentSensor: 'SCT-013 (30A / 1V built-in burden)',
-  adc: 'ADS131M02 (24-bit simultaneous)',
+  voltageSensor: 'ZMPT101B (GPIO 4, Cal 311.5)',
+  currentSensor: 'SCT-013-000 (GPIO 5, 22Ω Burden, Cal 23.202)',
+  adc: 'ESP32-S3 Internal 12-bit ADC1 (5 kSPS)',
   phaseSystem: 'Single-phase AC',
   nominalVoltageV: 230,
   nominalFrequencyHz: 50,
-  maxCurrentA: 30,
+  maxCurrentA: 100,
 } as const;
 
 export const APP_TIMEZONE = 'Asia/Kolkata';
-export const STALE_TELEMETRY_SECONDS = 120;
+export const STALE_TELEMETRY_SECONDS = 45;
+export const DEFAULT_TELEMETRY_INTERVAL_SECONDS = 10;
+export const DEFAULT_MQTT_KEEPALIVE_SECONDS = 20;
 
 export function formatKolkataDateTime(isoOrDate: string | Date): string {
   const date = typeof isoOrDate === 'string' ? new Date(isoOrDate) : isoOrDate;

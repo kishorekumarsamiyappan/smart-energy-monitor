@@ -38,6 +38,7 @@ mobile/android/app/release/
 
 # ESP-IDF Firmware
 firmware/build/
+firmware/.cache/
 firmware/sdkconfig
 firmware/sdkconfig.old
 firmware/managed_components/

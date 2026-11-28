@@ -138,3 +138,18 @@ bool pstore_save_calibration(float v_cal, float i_cal, float phase_deg) {
     nvs_close(h);
     return err == ESP_OK;
 }
+
+void pstore_factory_reset(void) {
+    nvs_handle_t h;
+    if (nvs_open(NVS_NS, NVS_READWRITE, &h) == ESP_OK) {
+        nvs_erase_all(h);
+        nvs_commit(h);
+        nvs_close(h);
+    }
+    if (nvs_open("sem_relays", NVS_READWRITE, &h) == ESP_OK) {
+        nvs_erase_all(h);
+        nvs_commit(h);
+        nvs_close(h);
+    }
+    ESP_LOGW(TAG, "Factory reset completed: cleared Wi-Fi, MQTT, calibration, and relay NVS namespaces");
+}

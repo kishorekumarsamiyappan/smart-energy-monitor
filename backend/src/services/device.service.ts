@@ -117,8 +117,8 @@ export class DeviceService {
     const res = await this.db.query<DeviceRow>(
       `INSERT INTO devices (
         device_id, owner_user_id, name, location_label, service_category,
-        consumer_eligible_for_subsidy, meter_serial_number
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        consumer_eligible_for_subsidy, meter_serial_number, telemetry_interval_sec
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, 10)
       RETURNING *`,
       [
         code,
@@ -155,12 +155,6 @@ export class DeviceService {
     );
     await this.db.query(
       `INSERT INTO device_io_configs (device_uuid) VALUES ($1) ON CONFLICT (device_uuid) DO NOTHING`,
-      [created.id],
-    );
-    await this.db.query(
-      `INSERT INTO device_relays (device_uuid, channel_index, name, gpio_pin, active_high, current_state, fail_safe_state, is_confirmed_default)
-       VALUES ($1, 1, 'Confirmed Relay 1', 4, TRUE, FALSE, FALSE, TRUE)
-       ON CONFLICT (device_uuid, channel_index) DO NOTHING`,
       [created.id],
     );
     await this.db.query(

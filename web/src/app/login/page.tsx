@@ -40,35 +40,37 @@ export default function LoginPage() {
         minHeight: '100vh',
         background: 'var(--sem-surface)',
         display: 'flex',
-        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px 16px',
       }}
     >
       <div
-        style={{
-          background: '#29378F',
-          color: '#FFFFFF',
-          padding: '28px 24px 48px',
-          textAlign: 'center',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-          <BrandLogo variant="light" />
-        </div>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Welcome Back</h1>
-        <p style={{ margin: '6px 0 0', fontSize: 13, opacity: 0.85 }}>
-          Sign in to monitor your ESP32-S3 energy meters &amp; TNEB bills
-        </p>
-      </div>
-
-      <div
+        className="sem-card"
         style={{
           maxWidth: 440,
           width: '100%',
-          margin: '-28px auto 32px',
-          padding: '0 16px',
+          overflow: 'hidden',
         }}
       >
-        <div className="sem-card" style={{ padding: 24 }}>
+        <div
+          style={{
+            background: '#29378F',
+            color: '#FFFFFF',
+            padding: '24px 24px 22px',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+            <BrandLogo variant="light" />
+          </div>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Welcome Back</h1>
+          <p style={{ margin: '6px 0 0', fontSize: 13, opacity: 0.85 }}>
+            Sign in to monitor your ESP32-S3 energy meters &amp; TNEB bills
+          </p>
+        </div>
+
+        <div style={{ padding: 24 }}>
           {!cloudConfigured && (
             <div
               style={{
@@ -110,7 +112,7 @@ export default function LoginPage() {
               <div style={{ position: 'relative' }}>
                 <Mail
                   size={17}
-                  color="#4054B2"
+                  color="var(--sem-secondary)"
                   style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}
                 />
                 <input
@@ -133,7 +135,7 @@ export default function LoginPage() {
               <div style={{ position: 'relative' }}>
                 <Lock
                   size={17}
-                  color="#4054B2"
+                  color="var(--sem-secondary)"
                   style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}
                 />
                 <input

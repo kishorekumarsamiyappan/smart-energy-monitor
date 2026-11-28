@@ -52,7 +52,7 @@ export default function BillingPage() {
   let calcResult = null;
   try {
     calcResult = calculateTnebBill({
-      deviceId: device?.deviceId ?? 'DEVICE001',
+      deviceId: device?.deviceId ?? 'SEM_ESP32S3_01',
       serviceCategory: 'LT-IA',
       consumerEligible: eligible,
       previousReading: Number(prevRead),
@@ -154,11 +154,11 @@ export default function BillingPage() {
       </div>
 
       {/* Interactive Calculator & Slab Breakdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 18, marginBottom: 22 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 290px), 1fr))', gap: 18, marginBottom: 22 }}>
         <div className="sem-card" style={{ padding: 20 }}>
           <h2 style={{ marginTop: 0, fontSize: 17 }}>Bi-Monthly Estimator (LT-IA)</h2>
           <div style={{ display: 'grid', gap: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 10 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Previous Reading (kWh)</label>
                 <input type="number" step="0.1" className="sem-input" value={prevRead} onChange={(e) => setPrevRead(e.target.value)} />
@@ -261,7 +261,7 @@ export default function BillingPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Receipt size={18} color="#29378F" />
+                    <Receipt size={18} color="var(--sem-primary)" />
                     <strong style={{ fontSize: 15 }}>
                       {formatKolkataDate(c.periodStart)} – {formatKolkataDate(c.periodEnd)}
                     </strong>
@@ -304,7 +304,7 @@ export default function BillingPage() {
                 >
                   <FileText size={14} /> Export PDF
                 </button>
-                <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>
                   <input
                     type="number"
                     placeholder="Actual EB ₹"

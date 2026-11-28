@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +9,7 @@ import '../services/demo_data_service.dart';
 
 class AppState extends ChangeNotifier {
   final ApiService _api = ApiService();
+  Timer? _livePollTimer;
 
   ThemeMode _themeMode = ThemeMode.light;
   bool _isInitialized = false;
@@ -69,6 +71,7 @@ class AppState extends ChangeNotifier {
       _token = savedToken;
       _user = UserProfile.fromJson(jsonDecode(savedUserJson) as Map<String, dynamic>);
       await refreshProductionData();
+      _startLivePolling();
     }
 
     _isInitialized = true;
@@ -87,6 +90,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> enterDemoMode() async {
+    _stopLivePolling();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('sem_demo_mode', true);
     await prefs.remove('sem_token');
@@ -200,6 +204,7 @@ class AppState extends ChangeNotifier {
     await prefs.setString('sem_user', jsonEncode(res['user']));
 
     await refreshProductionData();
+    _startLivePolling();
     notifyListeners();
   }
 
@@ -227,11 +232,13 @@ class AppState extends ChangeNotifier {
       await prefs.setString('sem_token', _token!);
       await prefs.setString('sem_user', jsonEncode(res['user']));
       await refreshProductionData();
+      _startLivePolling();
     }
     notifyListeners();
   }
 
   Future<void> logout() async {
+    _stopLivePolling();
     if (_token != null && !_isDemoMode) {
       try {
         await _api.request('POST', '/auth/logout', token: _token);
@@ -339,9 +346,9 @@ class AppState extends ChangeNotifier {
         locationLabel: locationLabel,
         serviceCategory: 'LT-IA',
         consumerEligibleForSubsidy: consumerEligible,
-        firmwareVersion: '1.2.0-demo',
-        hardwareVersion: 'ESP32-S3-ADS131M02-REV2',
-        telemetryIntervalSec: 5,
+        firmwareVersion: '1.3.1-demo',
+        hardwareVersion: 'ESP32-S3-ADC1-REV3',
+        telemetryIntervalSec: 10,
         monitoringMode: 'automatic',
         isOnline: true,
         wifiRssiDbm: -57,
@@ -396,13 +403,23 @@ class AppState extends ChangeNotifier {
       return;
     }
 
-    await _api.request('POST', '/devices', token: _token, body: {
-      'deviceId': cleanId,
-      'name': name.trim(),
-      if (locationLabel != null) 'locationLabel': locationLabel.trim(),
-      'serviceCategory': 'LT-IA',
-      'consumerEligibleForSubsidy': consumerEligible,
-    });
+    try {
+      await _api.request('POST', '/devices', token: _token, body: {
+        'deviceId': cleanId,
+        'name': name.trim(),
+        if (locationLabel != null) 'locationLabel': locationLabel.trim(),
+        'serviceCategory': 'LT-IA',
+        'consumerEligibleForSubsidy': consumerEligible,
+      });
+    } on ApiServiceException catch (e) {
+      await refreshProductionData();
+      if (e.statusCode == 409 && _devices.any((d) => d.deviceId == cleanId)) {
+        _selectedDeviceId = cleanId;
+        notifyListeners();
+        return;
+      }
+      rethrow;
+    }
     await refreshProductionData();
   }
 
@@ -414,6 +431,42 @@ class AppState extends ChangeNotifier {
     }
     await _api.request('PATCH', '/devices/$deviceId', token: _token, body: {'name': newName});
     await refreshProductionData();
+  }
+
+  Future<void> updateTelemetryInterval(String deviceId, int intervalSec) async {
+    final cleanSec = intervalSec.clamp(5, 3600);
+    if (_isDemoMode) {
+      _devices = _devices
+          .map((d) => d.deviceId == deviceId ? d.copyWith(telemetryIntervalSec: cleanSec) : d)
+          .toList();
+      notifyListeners();
+      return;
+    }
+    await _api.request('PATCH', '/devices/$deviceId', token: _token, body: {'telemetryIntervalSec': cleanSec});
+    await refreshProductionData();
+  }
+
+  void _startLivePolling() {
+    _livePollTimer?.cancel();
+    if (_isDemoMode || _token == null) return;
+    _livePollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (_isDemoMode || _token == null) {
+        _stopLivePolling();
+        return;
+      }
+      refreshProductionData();
+    });
+  }
+
+  void _stopLivePolling() {
+    _livePollTimer?.cancel();
+    _livePollTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _stopLivePolling();
+    super.dispose();
   }
 
   Future<void> removeDevice(String deviceId) async {

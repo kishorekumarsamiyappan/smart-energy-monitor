@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+typedef void (*sem_mqtt_state_cb_t)(bool connected, bool auth_failed);
+
 typedef struct {
     const char *broker_uri;   // e.g. "mqtts://your-emqx-host:8883"
     const char *ca_cert_pem;  // Root CA PEM string for TLS server verification
@@ -15,6 +17,7 @@ typedef struct {
     const char *mqtt_user;
     const char *mqtt_pass;
     const char *firmware_version;
+    sem_mqtt_state_cb_t on_state;
 } sem_mqtt_config_t;
 
 void sem_mqtt_format_ist_iso8601(char *buf, size_t len);

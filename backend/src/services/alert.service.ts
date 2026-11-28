@@ -42,6 +42,15 @@ export class AlertService {
 
       if (!triggered) continue;
 
+      const recentRes = await this.db.query<{ id: string }>(
+        `SELECT id FROM alerts
+         WHERE device_uuid = $1 AND alert_type = $2 AND status = 'active'
+           AND created_at >= NOW() - INTERVAL '5 minutes'
+         LIMIT 1`,
+        [dev.id, alertType],
+      );
+      if (recentRes.rows.length > 0) continue;
+
       const msg = `Advisory alert (${alertType.replaceAll('_', ' ')}): observed ${observed} vs threshold ${threshold}${secondary != null ? `..${secondary}` : ''}. Not an electrical protection trip.`;
       const ins = await this.db.query<Record<string, unknown>>(
         `INSERT INTO alerts (device_uuid, user_id, alert_type, threshold_value, observed_value, severity, status, message)
@@ -62,14 +71,23 @@ export class AlertService {
     const dev = devRes.rows[0];
     if (!dev) return;
 
+    const recentRes = await this.db.query<{ id: string }>(
+      `SELECT id FROM alerts
+       WHERE device_uuid = $1 AND alert_type = 'device_offline' AND status = 'active'
+         AND created_at >= NOW() - INTERVAL '5 minutes'
+       LIMIT 1`,
+      [dev.id],
+    );
+    if (recentRes.rows.length > 0) return;
+
     await this.db.query(
       `INSERT INTO alerts (device_uuid, user_id, alert_type, threshold_value, observed_value, severity, status, message)
-       VALUES ($1, $2, 'device_offline', 120, $3, 'critical', 'active', $4)`,
+       VALUES ($1, $2, 'device_offline', 45, $3, 'critical', 'active', $4)`,
       [
         dev.id,
         dev.owner_user_id,
         offlineMinutes * 60,
-        `Device ${deviceCode} went offline (MQTT LWT / timeout).`,
+        `Device ${deviceCode} went offline / possible power cut (~30s MQTT LWT / timeout).`,
       ],
     );
   }

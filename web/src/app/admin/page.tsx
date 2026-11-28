@@ -115,7 +115,7 @@ export default function AdminConsolePage() {
   return (
     <AppShell>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-        <ShieldCheck size={26} color="#29378F" />
+        <ShieldCheck size={26} color="var(--sem-primary)" />
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>Administrator Console</h1>
           <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--sem-muted)' }}>
@@ -130,10 +130,10 @@ export default function AdminConsolePage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 290px), 1fr))', gap: 18 }}>
         <div className="sem-card" style={{ padding: 18 }}>
           <h2 style={{ marginTop: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Users size={18} color="#4054B2" /> Registered Users ({users.length})
+            <Users size={18} color="var(--sem-secondary)" /> Registered Users ({users.length})
           </h2>
           {users.map((u) => (
             <div key={u.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--sem-border)', fontSize: 13 }}>
@@ -144,7 +144,7 @@ export default function AdminConsolePage() {
 
         <div className="sem-card" style={{ padding: 18 }}>
           <h2 style={{ marginTop: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Cpu size={18} color="#4054B2" /> Fleet Devices ({devices.length})
+            <Cpu size={18} color="var(--sem-secondary)" /> Fleet Devices ({devices.length})
           </h2>
           {devices.map((d) => (
             <div key={d.deviceId} style={{ padding: '8px 0', borderBottom: '1px solid var(--sem-border)', fontSize: 13, display: 'flex', justifyContent: 'space-between' }}>
@@ -156,7 +156,7 @@ export default function AdminConsolePage() {
 
         <div className="sem-card" style={{ padding: 18 }}>
           <h2 style={{ marginTop: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <FileSpreadsheet size={18} color="#4054B2" /> Tariff Versions ({tariffs.length})
+            <FileSpreadsheet size={18} color="var(--sem-secondary)" /> Tariff Versions ({tariffs.length})
           </h2>
           {tariffs.map((t) => (
             <div key={t.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--sem-border)', fontSize: 13 }}>
@@ -173,7 +173,7 @@ export default function AdminConsolePage() {
 
         <div className="sem-card" style={{ padding: 18 }}>
           <h2 style={{ marginTop: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <DownloadCloud size={18} color="#4054B2" /> GitHub Firmware Releases ({releases.length})
+            <DownloadCloud size={18} color="var(--sem-secondary)" /> GitHub Firmware Releases ({releases.length})
           </h2>
           {releases.slice(0, 5).map((rel) => (
             <div key={rel.version} style={{ padding: '8px 0', borderBottom: '1px solid var(--sem-border)', fontSize: 13 }}>

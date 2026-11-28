@@ -21,7 +21,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useData } from '@/lib/data-context';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const SUGGESTED_SAFE_GPIOS = [4, 5, 6, 7, 15, 16, 17, 18, 21, 38, 39, 40, 41, 42];
+const SUGGESTED_SAFE_GPIOS = [1, 2, 15, 16, 17, 18, 21, 38, 39, 40, 41, 42];
 
 export default function DeviceRelaysPage() {
   const params = useParams<{ deviceId: string }>();
@@ -43,7 +43,7 @@ export default function DeviceRelaysPage() {
   const relays = device ? relaysByDevice[device.deviceId] ?? [] : [];
 
   const [newRelayName, setNewRelayName] = useState('');
-  const [newRelayGpio, setNewRelayGpio] = useState('5');
+  const [newRelayGpio, setNewRelayGpio] = useState('15');
   const [newRelayActiveHigh, setNewRelayActiveHigh] = useState(true);
   const [newRelayFailSafe, setNewRelayFailSafe] = useState(false);
 
@@ -82,7 +82,7 @@ export default function DeviceRelaysPage() {
     if (RESERVED_ESP32_GPIOS.has(gpioPin)) {
       setFeedback({
         tone: 'error',
-        text: `GPIO ${gpioPin} is reserved for ADS131M02 SPI, USB, or Flash. Choose an available pin (${SUGGESTED_SAFE_GPIOS.join(', ')}).`,
+        text: `GPIO ${gpioPin} is reserved for Voltage/Current ADC, LED, USB, or Flash. Choose an available pin (${SUGGESTED_SAFE_GPIOS.join(', ')}).`,
       });
       return;
     }
@@ -159,9 +159,9 @@ export default function DeviceRelaysPage() {
       </div>
 
       {/* Offline RTC + Safety Notices */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 12, marginBottom: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12, marginBottom: 18 }}>
         <div className="sem-lavender-card" style={{ padding: 14, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <WifiOff size={18} color="#29378F" style={{ flexShrink: 0, marginTop: 2 }} />
+          <WifiOff size={18} color="var(--sem-primary)" style={{ flexShrink: 0, marginTop: 2 }} />
           <div style={{ fontSize: 12.5 }}>
             <strong>Offline Schedule Continuity:</strong> All relay schedules (Asia/Kolkata IST) are mirrored into ESP32-S3 NVS flash. Relays keep switching accurately on the internal RTC even if Wi-Fi or cloud MQTT disconnects.
           </div>
@@ -201,6 +201,11 @@ export default function DeviceRelaysPage() {
       )}
 
       {/* Active Relay Channels */}
+      {relays.length === 0 && (
+        <div className="sem-card" style={{ padding: 18, marginBottom: 16, fontSize: 13, color: 'var(--sem-muted)' }}>
+          No relays configured on this meter yet. Relay ON/OFF switching is optional — add a relay channel below only if you want relay control.
+        </div>
+      )}
       <div style={{ display: 'grid', gap: 16, marginBottom: 22 }}>
         {relays.map((relay) => (
           <div key={relay.id} className="sem-card" style={{ padding: 18 }}>
@@ -245,19 +250,17 @@ export default function DeviceRelaysPage() {
                   <Power size={15} />
                   {relay.currentState ? 'Turn OFF' : 'Turn ON'}
                 </button>
-                {relay.channelIndex > 1 && (
-                  <button
-                    type="button"
-                    aria-label={`Remove ${relay.name}`}
-                    className="sem-btn sem-btn-outline"
-                    style={{ padding: '8px 10px', color: 'var(--sem-error)', borderColor: 'var(--sem-error)' }}
-                    onClick={() => {
-                      if (device) void deleteRelay(device.deviceId, relay.id);
-                    }}
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  aria-label={`Remove ${relay.name}`}
+                  className="sem-btn sem-btn-outline"
+                  style={{ padding: '8px 10px', color: 'var(--sem-error)', borderColor: 'var(--sem-error)' }}
+                  onClick={() => {
+                    if (device) void deleteRelay(device.deviceId, relay.id);
+                  }}
+                >
+                  <Trash2 size={15} />
+                </button>
               </div>
             </div>
 
@@ -266,7 +269,7 @@ export default function DeviceRelaysPage() {
             {/* Offline Schedules for this relay */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13.5, fontWeight: 700 }}>
-                <CalendarClock size={16} color="#4054B2" />
+                <CalendarClock size={16} color="var(--sem-secondary)" />
                 Offline RTC Schedules ({relay.schedules.length})
               </div>
               <button
@@ -421,13 +424,13 @@ export default function DeviceRelaysPage() {
         ))}
       </div>
 
-      {/* Add Additional Relay (CH2 - CH8) */}
+      {/* Add Optional Relay (CH1 - CH8) */}
       <div className="sem-card" style={{ padding: 20 }}>
         <h2 style={{ marginTop: 0, fontSize: 17, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ShieldCheck size={18} color="#29378F" /> Add Expansion Relay Channel (CH2–CH8)
+          <ShieldCheck size={18} color="var(--sem-primary)" /> Add Optional Relay Channel (CH1–CH8)
         </h2>
         <p style={{ fontSize: 12.5, color: 'var(--sem-muted)', marginTop: 4 }}>
-          Channel 1 (Main Contactor) is confirmed by default. Add extra GPIO relays for geyser, AC, or water pump scheduling. Reserved SPI/Flash pins ({Array.from(RESERVED_ESP32_GPIOS).join(', ')}) are blocked automatically.
+          Relays are optional — add channels only if wired. Reserved sensor/system pins ({Array.from(RESERVED_ESP32_GPIOS).join(', ')}) are blocked automatically.
         </p>
 
         <form onSubmit={(e) => void handleAddRelay(e)} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginTop: 14 }}>

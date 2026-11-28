@@ -23,11 +23,11 @@ export class RelayService {
   }
 
   async listRelays(deviceUuid: string, deviceCode: string): Promise<DeviceRelay[]> {
-    await this.ensureDefaultRelay(deviceUuid);
     const relaysRes = await this.db.query<Record<string, unknown>>(
       `SELECT * FROM device_relays WHERE device_uuid = $1 ORDER BY channel_index ASC`,
       [deviceUuid],
     );
+    if (relaysRes.rows.length === 0) return [];
     const schedRes = await this.db.query<Record<string, unknown>>(
       `SELECT * FROM relay_schedules WHERE device_uuid = $1 ORDER BY start_time_ist ASC`,
       [deviceUuid],
@@ -72,10 +72,8 @@ export class RelayService {
     deviceCode: string,
     input: { name: string; gpioPin: number; activeHigh: boolean; failSafeState: boolean },
   ): Promise<DeviceRelay> {
-    await this.ensureDefaultRelay(deviceUuid);
-
     if (RESERVED_ESP32_GPIOS.has(input.gpioPin)) {
-      throw new AppError(400, `GPIO ${input.gpioPin} is reserved for ADS131M02 SPI or system flash.`, 'RESERVED_GPIO');
+      throw new AppError(400, `GPIO ${input.gpioPin} is reserved for Voltage/Current ADC, LED, USB, or system flash.`, 'RESERVED_GPIO');
     }
 
     const current = await this.listRelays(deviceUuid, deviceCode);
@@ -86,7 +84,7 @@ export class RelayService {
       throw new AppError(409, `GPIO ${input.gpioPin} is already assigned to another relay.`, 'DUPLICATE_GPIO');
     }
 
-    const nextChannel = Math.max(...current.map((r) => r.channelIndex)) + 1;
+    const nextChannel = current.length === 0 ? 1 : Math.max(...current.map((r) => r.channelIndex)) + 1;
     const res = await this.db.query<Record<string, unknown>>(
       `INSERT INTO device_relays (
         device_uuid, channel_index, name, gpio_pin, active_high,
@@ -142,15 +140,12 @@ export class RelayService {
   }
 
   async deleteRelay(deviceUuid: string, relayId: string): Promise<void> {
-    const check = await this.db.query<{ is_confirmed_default: boolean }>(
-      `SELECT is_confirmed_default FROM device_relays WHERE id = $1 AND device_uuid = $2 LIMIT 1`,
+    const check = await this.db.query<{ id: string }>(
+      `SELECT id FROM device_relays WHERE id = $1 AND device_uuid = $2 LIMIT 1`,
       [relayId, deviceUuid],
     );
     if (!check.rows[0]) {
       throw new AppError(404, 'Relay not found', 'RELAY_NOT_FOUND');
-    }
-    if (check.rows[0].is_confirmed_default) {
-      throw new AppError(400, 'The primary confirmed relay (CH1) cannot be deleted.', 'CANNOT_DELETE_DEFAULT_RELAY');
     }
     await this.db.query(`DELETE FROM device_relays WHERE id = $1 AND device_uuid = $2`, [relayId, deviceUuid]);
   }

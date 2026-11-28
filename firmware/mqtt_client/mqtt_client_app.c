@@ -3,10 +3,14 @@
 #include "cJSON.h"
 #include "energy_counter.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #include "fota_manager.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "led_indicator.h"
 #include "mqtt_client.h"
 #include "offline_buffer.h"
+#include "persistent_storage.h"
 #include "relay_controller.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,9 +20,10 @@
 static const char *TAG = "SEM_MQTT";
 static esp_mqtt_client_handle_t s_client = NULL;
 static bool s_connected = false;
-static char s_dev_id[64] = "DEVICE001";
-static char s_fw_ver[32] = "1.3.0";
-static int s_interval_sec = 5;
+static sem_mqtt_state_cb_t s_on_state = NULL;
+static char s_dev_id[64] = "SEM_ESP32S3_01";
+static char s_fw_ver[32] = "1.3.1";
+static int s_interval_sec = 10;
 
 void sem_mqtt_format_ist_iso8601(char *buf, size_t len) {
     time_t now = time(NULL) + (5 * 3600 + 1800); // Shift UTC to Asia/Kolkata (+05:30)
@@ -131,6 +136,11 @@ static void handle_incoming_message(const char *topic, int topic_len, const char
                         sem_mqtt_publish_status("online", "failed", 0, s_fw_ver);
                     }
                 }
+            } else if (strcmp(cmd->valuestring, "factory_reset") == 0) {
+                pstore_factory_reset();
+                sem_mqtt_publish_status("factory_reset", NULL, 0, s_fw_ver);
+                vTaskDelay(pdMS_TO_TICKS(300));
+                esp_restart();
             }
         }
     }
@@ -153,12 +163,20 @@ static void mqtt_event_handler(void *arg, esp_event_base_t base, int32_t event_i
             esp_mqtt_client_subscribe(s_client, cfg_topic, 1);
             esp_mqtt_client_subscribe(s_client, cmd_topic, 1);
             sem_mqtt_publish_status("online", NULL, 0, s_fw_ver);
+            if (s_on_state) s_on_state(true, false);
             break;
         }
         case MQTT_EVENT_DISCONNECTED:
             s_connected = false;
             led_ind_set_visual_state(LED_DEV_STATE_OFFLINE_BUFFER);
             ESP_LOGW(TAG, "MQTT disconnected; switching to local SPIFFS offline buffering");
+            if (s_on_state) s_on_state(false, false);
+            break;
+        case MQTT_EVENT_ERROR:
+            if (ev && ev->error_handle &&
+                ev->error_handle->error_type == MQTT_ERROR_TYPE_CONNECTION_REFUSED) {
+                if (s_on_state) s_on_state(false, true);
+            }
             break;
         case MQTT_EVENT_DATA:
             handle_incoming_message(ev->topic, ev->topic_len, ev->data, ev->data_len);
@@ -170,6 +188,13 @@ static void mqtt_event_handler(void *arg, esp_event_base_t base, int32_t event_i
 
 void sem_mqtt_start(const sem_mqtt_config_t *cfg) {
     if (!cfg || !cfg->broker_uri || !cfg->device_id) return;
+    if (s_client) {
+        esp_mqtt_client_stop(s_client);
+        esp_mqtt_client_destroy(s_client);
+        s_client = NULL;
+        s_connected = false;
+    }
+    s_on_state = cfg->on_state;
     snprintf(s_dev_id, sizeof(s_dev_id), "%s", cfg->device_id);
     if (cfg->firmware_version) snprintf(s_fw_ver, sizeof(s_fw_ver), "%s", cfg->firmware_version);
 
@@ -185,6 +210,7 @@ void sem_mqtt_start(const sem_mqtt_config_t *cfg) {
         .credentials.client_id = s_dev_id,
         .credentials.username = cfg->mqtt_user,
         .credentials.authentication.password = cfg->mqtt_pass,
+        .session.keepalive = 20,
         .session.last_will = {
             .topic = lwt_topic,
             .msg = lwt_msg,

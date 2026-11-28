@@ -5,9 +5,9 @@ import { AuthProvider } from '@/lib/auth-context';
 import { DataProvider } from '@/lib/data-context';
 
 export const metadata: Metadata = {
-  title: 'Smart Energy Monitor — Single-Phase IoT & TNEB Billing',
+  title: 'SEM — Smart Energy Monitor',
   description:
-    'Real-time single-phase electricity monitor with ESP32-S3, ADS131M02, MQTT TLS, and TNEB LT-IA billing estimator.',
+    'SEM real-time single-phase electricity monitor with ESP32-S3, ZMPT101B, SCT-013, MQTT TLS, and TNEB LT-IA billing.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

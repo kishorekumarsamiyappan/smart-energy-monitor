@@ -122,7 +122,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             const SizedBox(width: 8),
             IconButton.outlined(
-              icon: const Icon(Icons.refresh_rounded, color: SemColors.primary),
+              icon: Icon(Icons.refresh_rounded, color: SemColors.accentPrimary(context)),
               onPressed: () {
                 if (dev != null) state.loadHistory(dev.deviceId, days: _days);
               },
@@ -155,7 +155,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ChartSeriesData(
                   label: _tab.name.toUpperCase(),
                   unit: unit,
-                  color: SemColors.secondary,
+                  color: SemColors.accentSecondary(context),
                   points: pts.map((p) => (p.deviceTimestamp, pick(p))).toList(),
                 ),
               ],
@@ -188,7 +188,7 @@ class _StatBox extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: SemColors.primary),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: SemColors.accentPrimary(context)),
             overflow: TextOverflow.ellipsis,
           ),
         ],

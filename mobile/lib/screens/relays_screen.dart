@@ -16,7 +16,7 @@ class RelaysScreen extends StatefulWidget {
 
 class _RelaysScreenState extends State<RelaysScreen> {
   final _nameCtrl = TextEditingController();
-  final _gpioCtrl = TextEditingController(text: '5');
+  final _gpioCtrl = TextEditingController(text: '15');
   bool _activeHigh = true;
   bool _failSafe = false;
 
@@ -57,21 +57,46 @@ class _RelaysScreenState extends State<RelaysScreen> {
               color: SemColors.lightCard,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Row(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.wifi_off_rounded, color: SemColors.primary, size: 20),
-                SizedBox(width: 10),
+                Icon(Icons.wifi_off_rounded, color: SemColors.accentPrimary(context), size: 20),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Schedules sync to ESP32-S3 NVS flash and continue running on local RTC even when Wi-Fi or cloud disconnects. Relays do not replace MCB/RCCB breakers.',
-                    style: TextStyle(fontSize: 12.5, color: SemColors.textLight),
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: Theme.of(context).brightness == Brightness.dark ? SemColors.textDark : SemColors.textLight,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 14),
+          if (relays.isEmpty) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'No Relays Configured (Optional)',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'This SEM meter works as an energy monitor without relays. Add an optional relay below only if wired to a safe GPIO (avoid GPIO 4 Voltage ADC & GPIO 5 Current ADC).',
+                      style: TextStyle(fontSize: 12.5),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           for (final relay in relays) ...[
             Card(
               child: Padding(
@@ -109,10 +134,10 @@ class _RelaysScreenState extends State<RelaysScreen> {
                       'GPIO ${relay.gpioPin} • ${relay.activeHigh ? "Active High" : "Active Low"} • Boot fail-safe: ${relay.failSafeState ? "ON" : "OFF"}',
                       style: const TextStyle(fontSize: 12),
                     ),
-                    if (relay.channelIndex == 1)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 6),
-                        child: SemStatusBadge(label: 'CONFIRMED DEFAULT RELAY', color: SemColors.secondary),
+                    if (relay.isConfirmedDefault)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: SemStatusBadge(label: 'CONFIRMED DEFAULT RELAY', color: SemColors.accentSecondary(context)),
                       ),
                     const SizedBox(height: 10),
                     const DashedDivider(),
@@ -155,7 +180,7 @@ class _RelaysScreenState extends State<RelaysScreen> {
                             ],
                           ),
                         ),
-                    if (relay.channelIndex > 1)
+                    if (!relay.isConfirmedDefault || !state.isDemoMode)
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton.icon(
@@ -177,7 +202,7 @@ class _RelaysScreenState extends State<RelaysScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Add Expansion Relay (CH2–CH8)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                  const Text('Add Optional Relay (CH1–CH8)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 10),
                   TextField(
                     controller: _nameCtrl,
@@ -217,7 +242,7 @@ class _RelaysScreenState extends State<RelaysScreen> {
                         }
                         if (pin < 1 || pin > 48 || kReservedEsp32Gpios.contains(pin)) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('GPIO $pin is invalid or reserved for ADS131M02 SPI/Flash.')),
+                            SnackBar(content: Text('GPIO $pin is invalid or reserved (GPIO 4/5 ADC, Flash, USB).')),
                           );
                           return;
                         }

@@ -36,7 +36,7 @@ class _BillingScreenState extends State<BillingScreen> {
     String? err;
     try {
       summary = TnebBillingEngine.calculateIndicative2026(
-        deviceId: dev?.deviceId ?? 'DEVICE001',
+        deviceId: dev?.deviceId ?? 'SEM_ESP32S3_01',
         previousReading: prev,
         currentReading: curr,
         previousReadingDate: '2026-10-01',
@@ -145,7 +145,7 @@ class _BillingScreenState extends State<BillingScreen> {
                       const Text('Estimated Amount', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                       Text(
                         '₹${summary.totalEstimatedAmountInr.toStringAsFixed(2)}',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: SemColors.primary),
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: SemColors.accentPrimary(context)),
                       ),
                     ],
                   ),

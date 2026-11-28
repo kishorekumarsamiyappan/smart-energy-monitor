@@ -154,7 +154,13 @@ export function createWorkerApp(getStore: (env: WorkerEnv) => WorkerStore) {
       const st = String(payload.status ?? '').toLowerCase();
       if (st === 'offline') {
         await store.markDeviceOffline(deviceCode, String(payload.reason ?? 'MQTT_LWT'));
-        await store.createDeviceAlert(deviceCode, 'device_offline', 120, `Device ${deviceCode} went offline (MQTT LWT).`, 'critical');
+        await store.createDeviceAlert(
+          deviceCode,
+          'device_offline',
+          45,
+          `Device ${deviceCode} went offline / possible power cut (~30s MQTT LWT).`,
+          'critical',
+        );
       }
       const relays = Array.isArray(payload.relays)
         ? payload.relays

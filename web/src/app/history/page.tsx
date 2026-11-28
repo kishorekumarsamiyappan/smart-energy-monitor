@@ -59,13 +59,13 @@ export default function EnergyHistoryPage() {
       case 'current':
         return { unit: 'A', min: stats.minCurrent, max: stats.maxCurrent, avg: stats.avgCurrent, color: '#1B9E4B', label: 'Current' };
       case 'active_power':
-        return { unit: 'W', min: stats.minPowerW, max: stats.maxPowerW, avg: stats.avgPowerW, color: '#29378F', label: 'Active Power' };
+        return { unit: 'W', min: stats.minPowerW, max: stats.maxPowerW, avg: stats.avgPowerW, color: 'var(--sem-primary)', label: 'Active Power' };
       case 'energy':
-        return { unit: 'kWh', min: points[0]?.energyKwh ?? 0, max: points[points.length - 1]?.energyKwh ?? 0, avg: stats.totalEnergyKwh, color: '#4054B2', label: 'Energy Counter' };
+        return { unit: 'kWh', min: points[0]?.energyKwh ?? 0, max: points[points.length - 1]?.energyKwh ?? 0, avg: stats.totalEnergyKwh, color: 'var(--sem-secondary)', label: 'Energy Counter' };
       case 'power_factor':
         return { unit: 'PF', min: stats.minPowerFactor, max: stats.maxPowerFactor, avg: stats.avgPowerFactor, color: '#1B9E4B', label: 'Power Factor' };
       case 'frequency':
-        return { unit: 'Hz', min: stats.minFrequencyHz, max: stats.maxFrequencyHz, avg: stats.avgFrequencyHz, color: '#4054B2', label: 'Frequency' };
+        return { unit: 'Hz', min: stats.minFrequencyHz, max: stats.maxFrequencyHz, avg: stats.avgFrequencyHz, color: 'var(--sem-secondary)', label: 'Frequency' };
     }
   }, [points, stats, tab]);
 
@@ -152,7 +152,7 @@ export default function EnergyHistoryPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
           {devices.length > 1 && (
             <select
               aria-label="History device selector"
@@ -222,11 +222,11 @@ export default function EnergyHistoryPage() {
               <option value="30d">Last 30 days</option>
               <option value="custom">Custom date range</option>
             </select>
-            <Calendar size={20} color="#29378F" />
+            <Calendar size={20} color="var(--sem-primary)" />
           </div>
 
           {dateFilter === 'custom' && (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
               <input type="date" className="sem-input" value={customStart} onChange={(e) => setCustomStart(e.target.value)} aria-label="Custom start date" />
               <span>to</span>
               <input type="date" className="sem-input" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} aria-label="Custom end date" />

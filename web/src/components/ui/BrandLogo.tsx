@@ -6,58 +6,62 @@ interface BrandLogoProps {
 }
 
 export function BrandLogo({ variant = 'light', compact = false }: BrandLogoProps) {
-  const fg = variant === 'light' ? '#FFFFFF' : '#29378F';
-  const accent = variant === 'light' ? '#F58220' : '#4054B2';
+  const fg = variant === 'light' ? '#FFFFFF' : 'var(--sem-primary)';
+  const accent = '#F58220';
+  const pulse = '#1B9E4B';
 
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
       <svg
-        width="36"
-        height="36"
+        width="38"
+        height="38"
         viewBox="0 0 40 40"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
       >
-        <rect
-          x="2"
-          y="2"
-          width="36"
-          height="36"
-          rx="10"
+        <defs>
+          <linearGradient id="semShieldGrad" x1="2" y1="2" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#1B256B" />
+            <stop offset="100%" stopColor="#4054B2" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M12 3H28L37 12V28L28 37H12L3 28V12L12 3Z"
+          fill={variant === 'light' ? 'rgba(255,255,255,0.14)' : 'url(#semShieldGrad)'}
           stroke={fg}
-          strokeWidth="2.5"
-          fill={variant === 'light' ? 'rgba(255,255,255,0.12)' : '#E9EAF8'}
+          strokeWidth="2.2"
         />
         <path
-          d="M22.5 8L12.5 21.5H20L17.5 32L27.5 18.5H20L22.5 8Z"
-          fill={accent}
-          stroke={fg}
-          strokeWidth="1.5"
+          d="M7 22H13L16 14L20.5 27L24 18L27 22H33"
+          stroke={accent}
+          strokeWidth="2.4"
+          strokeLinecap="round"
           strokeLinejoin="round"
         />
+        <circle cx="31.5" cy="9.5" r="2.6" fill={pulse} stroke="#FFFFFF" strokeWidth="1" />
       </svg>
       {!compact && (
-        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.08 }}>
           <span
             style={{
-              fontWeight: 800,
-              fontSize: 16,
-              letterSpacing: '0.02em',
+              fontWeight: 900,
+              fontSize: 18,
+              letterSpacing: '0.1em',
               color: fg,
             }}
           >
-            SMART ENERGY
+            SEM
           </span>
           <span
             style={{
               fontWeight: 600,
-              fontSize: 10,
+              fontSize: 9.5,
               letterSpacing: '0.14em',
-              color: variant === 'light' ? 'rgba(255,255,255,0.82)' : '#4054B2',
+              color: variant === 'light' ? 'rgba(255,255,255,0.82)' : 'var(--sem-secondary)',
             }}
           >
-            MONITOR • TNEB
+            ENERGY MONITOR
           </span>
         </div>
       )}

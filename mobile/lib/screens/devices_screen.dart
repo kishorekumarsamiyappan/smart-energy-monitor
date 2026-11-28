@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/time_utils.dart';
 import '../providers/app_state.dart';
+import '../services/ble_provisioning_service.dart';
 import '../widgets/sem_widgets.dart';
 import 'device_settings_screen.dart';
 import 'monitoring_screen.dart';
@@ -65,7 +66,7 @@ class DevicesScreen extends StatelessWidget {
                       final l = state.latestByDevice[dev.deviceId]!;
                       return Text(
                         '${l.voltageRms.toStringAsFixed(1)} V  |  ${l.currentRms.toStringAsFixed(2)} A  |  ${l.activePowerW.toStringAsFixed(0)} W  |  ${l.energyKwh.toStringAsFixed(2)} kWh',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: SemColors.primary),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: SemColors.accentPrimary(context)),
                       );
                     }),
                   ],
@@ -154,22 +155,69 @@ class DevicesScreen extends StatelessWidget {
     String deviceId,
     String name,
   ) async {
+    bool wipeBle = false;
+    bool busy = false;
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Remove Device'),
-        content: Text('Remove $name ($deviceId) from your account?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: SemColors.error),
-            onPressed: () async {
-              await state.removeDevice(deviceId);
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Remove'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          title: const Text('Factory Reset & Remove Device'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Remove $name ($deviceId) from your SEM account so it can be paired fresh?',
+              ),
+              const SizedBox(height: 10),
+              if (!state.isDemoMode)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: wipeBle,
+                  onChanged: busy ? null : (v) => setDlgState(() => wipeBle = v ?? false),
+                  title: const Text(
+                    'Also wipe ESP32-S3 NVS over BLE',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text(
+                    'If board is not nearby in BLE setup mode, hold BOOT on the ESP32-S3 for 5s instead.',
+                    style: TextStyle(fontSize: 11.5),
+                  ),
+                ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: busy ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: SemColors.error),
+              onPressed: busy
+                  ? null
+                  : () async {
+                      setDlgState(() => busy = true);
+                      String? bleNote;
+                      if (wipeBle && !state.isDemoMode) {
+                        try {
+                          final wiped = await BleProvisioningService().factoryResetDeviceById(deviceId);
+                          bleNote = wiped
+                              ? 'ESP32-S3 NVS wiped over BLE.'
+                              : 'ESP32-S3 not advertising over BLE; removed from cloud account.';
+                        } catch (e) {
+                          bleNote = 'BLE wipe skipped ($e); removed from cloud account.';
+                        }
+                      }
+                      await state.removeDevice(deviceId);
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (context.mounted && bleNote != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(bleNote)));
+                      }
+                    },
+              child: Text(busy ? 'Removing...' : 'Factory Reset & Remove'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 #include "signal_processing.h"
 #include <math.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 void dsp_remove_dc_offset(float *samples, size_t count) {

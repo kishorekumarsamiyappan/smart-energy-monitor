@@ -4,6 +4,7 @@ import '../core/theme/app_theme.dart';
 import '../core/utils/time_utils.dart';
 import '../models/models.dart';
 import '../providers/app_state.dart';
+import '../services/ble_provisioning_service.dart';
 
 class DeviceSettingsScreen extends StatelessWidget {
   final String deviceId;
@@ -38,9 +39,9 @@ class DeviceSettingsScreen extends StatelessWidget {
             icon: Icons.memory_rounded,
             title: 'Sensor Settings',
             onTap: () => _showDetailSheet(context, 'Sensor Settings', [
-              ('Voltage Sensor', cfg?.voltageSensorModel ?? 'ZMPT101B'),
-              ('Current Sensor', cfg?.currentSensorModel ?? 'SCT-013 (30A / 1V built-in burden)'),
-              ('ADC', cfg?.adcModel ?? 'ADS131M02 (24-bit simultaneous)'),
+              ('Voltage Sensor', cfg?.voltageSensorModel ?? 'ZMPT101B (GPIO 4)'),
+              ('Current Sensor', cfg?.currentSensorModel ?? 'SCT-013-000 + 22Ω (GPIO 5)'),
+              ('ADC', cfg?.adcModel ?? 'ESP32-S3 12-bit ADC1 @ 5 kSPS'),
             ]),
           ),
           const Divider(height: 1),
@@ -66,11 +67,7 @@ class DeviceSettingsScreen extends StatelessWidget {
           _SettingsMenuRow(
             icon: Icons.speed_rounded,
             title: 'Mode Settings',
-            onTap: () => _showDetailSheet(context, 'Mode Settings', [
-              ('Monitoring Mode', dev.monitoringMode),
-              ('Wi-Fi Status', dev.isOnline ? 'Connected (${dev.wifiRssiDbm ?? -55} dBm)' : 'Disconnected'),
-              ('Telemetry Interval', '${dev.telemetryIntervalSec} s'),
-            ]),
+            onTap: () => _showModeSheet(context, state, dev),
           ),
           const Divider(height: 1),
           _SettingsMenuRow(
@@ -91,7 +88,151 @@ class DeviceSettingsScreen extends StatelessWidget {
             ]),
           ),
           const Divider(height: 1),
+          _SettingsMenuRow(
+            icon: Icons.restart_alt_rounded,
+            title: 'Factory Reset & Remove Device',
+            onTap: () => _confirmFactoryReset(context, state, dev.deviceId, dev.name),
+          ),
+          const Divider(height: 1),
         ],
+      ),
+    );
+  }
+
+  Future<void> _confirmFactoryReset(
+    BuildContext context,
+    AppState state,
+    String deviceId,
+    String name,
+  ) async {
+    bool wipeBle = false;
+    bool busy = false;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          title: const Text('Factory Reset & Remove Device'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Remove $name ($deviceId) from your SEM account so it can be paired fresh?'),
+              if (!state.isDemoMode) ...[
+                const SizedBox(height: 10),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: wipeBle,
+                  onChanged: busy ? null : (v) => setDlgState(() => wipeBle = v ?? false),
+                  title: const Text(
+                    'Also wipe ESP32-S3 NVS over BLE',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text(
+                    'Or hold BOOT for 5s on the ESP32-S3 to clear saved Wi-Fi/MQTT credentials.',
+                    style: TextStyle(fontSize: 11.5),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: busy ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: SemColors.error),
+              onPressed: busy
+                  ? null
+                  : () async {
+                      setDlgState(() => busy = true);
+                      if (wipeBle && !state.isDemoMode) {
+                        try {
+                          await BleProvisioningService().factoryResetDeviceById(deviceId);
+                        } catch (_) {}
+                      }
+                      await state.removeDevice(deviceId);
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+              child: Text(busy ? 'Removing...' : 'Factory Reset & Remove'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showModeSheet(BuildContext context, AppState state, DeviceModel dev) {
+    var intervalSec = dev.telemetryIntervalSec;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Mode & Interval Settings', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Monitoring Mode', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text(dev.monitoringMode, style: TextStyle(fontWeight: FontWeight.w700, color: SemColors.accentPrimary(context))),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Power-Cut Detection', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text('20s Keepalive (~30s LWT)', style: TextStyle(fontWeight: FontWeight.w700, color: SemColors.accentPrimary(context))),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Stale Data Threshold', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text('45 s', style: TextStyle(fontWeight: FontWeight.w700, color: SemColors.accentPrimary(context))),
+                ],
+              ),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<int>(
+                initialValue: const [5, 10, 15, 30, 60].contains(intervalSec) ? intervalSec : 10,
+                decoration: const InputDecoration(labelText: 'Telemetry Publish Interval'),
+                items: const [
+                  DropdownMenuItem(value: 5, child: Text('Every 5s (Ultra Fast)')),
+                  DropdownMenuItem(value: 10, child: Text('Every 10s (Recommended)')),
+                  DropdownMenuItem(value: 15, child: Text('Every 15s (Balanced)')),
+                  DropdownMenuItem(value: 30, child: Text('Every 30s (Low Data)')),
+                  DropdownMenuItem(value: 60, child: Text('Every 60s (Economy)')),
+                ],
+                onChanged: (v) {
+                  if (v != null) setSheetState(() => intervalSec = v);
+                },
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    await state.updateTelemetryInterval(dev.deviceId, intervalSec);
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Telemetry interval set to ${intervalSec}s and pushed to ESP32-S3.')),
+                      );
+                    }
+                  },
+                  child: const Text('Save Interval'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -114,7 +255,7 @@ class DeviceSettingsScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(row.$1, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    Text(row.$2, style: const TextStyle(fontWeight: FontWeight.w700, color: SemColors.primary)),
+                    Text(row.$2, style: TextStyle(fontWeight: FontWeight.w700, color: SemColors.accentPrimary(context))),
                   ],
                 ),
               ),
@@ -154,7 +295,7 @@ class DeviceSettingsScreen extends StatelessWidget {
               children: [
                 const Text('I/O & LED Configuration', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 10),
-                Text('ADC SPI: ${cfg?.adcSpiOk != false ? "SPI OK" : "SPI FAULT"} • DRDY: 4 kSPS • FW ${dev.firmwareVersion}',
+                Text('ADC1: ${cfg?.adcSpiOk != false ? "GPIO 4 & 5 OK" : "ADC FAULT"} • 5 kSPS RMS • FW ${dev.firmwareVersion}',
                     style: const TextStyle(fontSize: 12.5)),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -277,7 +418,7 @@ class DeviceSettingsScreen extends StatelessWidget {
             const SizedBox(height: 10),
             if (fw?.latestRelease != null) ...[
               Text('Latest Release: v${fw!.latestRelease!.version} (${fw.latestRelease!.tagName ?? "release"})',
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: SemColors.primary)),
+                  style: TextStyle(fontWeight: FontWeight.w700, color: SemColors.accentPrimary(context))),
               const SizedBox(height: 4),
               Text(fw.latestRelease!.releaseNotes, style: const TextStyle(fontSize: 12)),
               const SizedBox(height: 14),
@@ -323,9 +464,9 @@ class _SettingsMenuRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      leading: Icon(icon, color: SemColors.secondary, size: 28),
+      leading: Icon(icon, color: SemColors.accentSecondary(context), size: 28),
       title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-      trailing: const Icon(Icons.chevron_right_rounded, color: SemColors.primary),
+      trailing: Icon(Icons.chevron_right_rounded, color: SemColors.accentPrimary(context)),
       onTap: onTap,
     );
   }

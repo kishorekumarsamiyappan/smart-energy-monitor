@@ -113,7 +113,7 @@ class _ManualReadingScreenState extends State<ManualReadingScreen> {
                   ElevatedButton(
                     onPressed: () {
                       final calc = TnebBillingEngine.calculateIndicative2026(
-                        deviceId: dev?.deviceId ?? 'DEVICE001',
+                        deviceId: dev?.deviceId ?? 'SEM_ESP32S3_01',
                         previousReading: prev,
                         currentReading: curr,
                         previousReadingDate: '2026-10-01',

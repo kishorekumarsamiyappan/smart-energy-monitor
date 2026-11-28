@@ -3,12 +3,10 @@
 
 void sensors_get_default_scaling(sensor_scaling_t *out) {
     if (!out) return;
-    // Example scaling for ZMPT101B divider feeding ADS131M02 (+/-1.2V input range)
-    // Must be verified against reference instrument on test bench before deployment.
-    out->zmpt101b_v_per_adc_volt = 325.0f;
-    // SCT-013 30A/1V has a built-in burden resistor outputting 1Vrms (1.414Vpk) at 30Arms.
-    // With a 0.5x differential attenuator ahead of ADS131M02 (+/-1.2V FS): 60.0 A/V at ADC pins.
-    out->sct013_amps_per_volt = 60.0f;
+    // Calibrated ZMPT101B constant on ESP32-S3 GPIO 4 (12-bit ADC_ATTEN_DB_12)
+    out->zmpt101b_v_per_adc_volt = 311.5f;
+    // Calibrated SCT-013-000 (22 Ohm burden) constant on ESP32-S3 GPIO 5
+    out->sct013_amps_per_volt = 23.202f;
 }
 
 float sensors_adc_to_mains_voltage(float adc_ch0_volts, float v_scale, float v_cal_factor) {

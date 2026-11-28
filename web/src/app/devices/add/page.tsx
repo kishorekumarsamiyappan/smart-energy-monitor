@@ -110,7 +110,7 @@ export default function AddDevicePage() {
         className="sem-lavender-card"
         style={{ padding: 14, marginBottom: 18, display: 'flex', gap: 12, alignItems: 'flex-start', fontSize: 13 }}
       >
-        <Info size={20} color="#29378F" style={{ flexShrink: 0, marginTop: 2 }} />
+        <Info size={20} color="var(--sem-primary)" style={{ flexShrink: 0, marginTop: 2 }} />
         <div>
           <strong>BLE Wi-Fi Provisioning Notice:</strong> Web Bluetooth is only supported on select desktop/Android Chromium browsers (never on iOS Safari or Firefox).{' '}
           {webBleSupported
@@ -139,7 +139,7 @@ export default function AddDevicePage() {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 290px), 1fr))', gap: 18 }}>
           <form onSubmit={handleManualPair} className="sem-card" style={{ padding: 20, display: 'grid', gap: 14 }}>
             <h2 style={{ margin: 0, fontSize: 17 }}>Manual Device ID Pairing</h2>
             {error && (
@@ -152,7 +152,7 @@ export default function AddDevicePage() {
               <input
                 id="deviceId"
                 className="sem-input"
-                placeholder="DEVICE001"
+                placeholder="SEM_ESP32S3_01"
                 value={deviceId}
                 onChange={(e) => setDeviceId(e.target.value)}
                 required
@@ -211,14 +211,14 @@ export default function AddDevicePage() {
 
           <div className="sem-card" style={{ padding: 20 }}>
             <h2 style={{ marginTop: 0, fontSize: 17, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Bluetooth size={20} color="#4054B2" /> BLE Wi-Fi Provisioning Steps
+              <Bluetooth size={20} color="var(--sem-secondary)" /> BLE Wi-Fi Provisioning Steps
             </h2>
             <ol style={{ paddingLeft: 18, fontSize: 13, lineHeight: 1.7, color: 'var(--sem-muted)' }}>
-              <li>Power the ESP32-S3 monitor safely from its isolated 5V/3.3V supply.</li>
-              <li>Hold the provisioning button for 3 seconds until BLE advertising (`SEM-DEVICE001`) begins.</li>
-              <li>Open the Smart Energy Monitor Android app → Tap <strong>+</strong> → Select nearby device over BLE.</li>
-              <li>Enter your 2.4 GHz Wi-Fi SSID &amp; password (never logged or exposed).</li>
-              <li>ESP32 connects to Wi-Fi, authenticates with EMQX over TLS (port 8883), and reports online status.</li>
+              <li>Power the ESP32-S3 monitor safely from its USB / isolated 5V supply.</li>
+              <li>ESP32 advertises over BLE as <code>SEM-SEM_ESP32S3_01</code> on boot.</li>
+              <li>Open the <strong>SEM</strong> Android app → Tap <strong>+</strong> → <strong>Scan BLE</strong> → click <code>SEM-SEM_ESP32S3_01</code> to auto-fill details.</li>
+              <li>Pick your nearby 2.4 GHz Wi-Fi network from the scan list &amp; enter its password.</li>
+              <li>ESP32 connects to Wi-Fi, authenticates with EMQX over TLS (port 8883), and reports live readings.</li>
             </ol>
           </div>
         </div>

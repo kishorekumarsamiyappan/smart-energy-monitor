@@ -27,14 +27,14 @@ void main() {
     expect(find.text('CONFIRMED DEFAULT RELAY'), findsOneWidget);
     expect(find.textContaining('Morning Geyser Window'), findsOneWidget);
 
-    // Scroll down to Add Expansion Relay card and enter CH2 on GPIO 5
+    // Scroll down to Add Optional Relay card and enter CH2 on safe GPIO 16
     await tester.scrollUntilVisible(
       find.text('Add New Relay'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.enterText(find.widgetWithText(TextField, 'New Relay Name'), 'Submersible Pump');
-    await tester.enterText(find.widgetWithText(TextField, 'ESP32-S3 GPIO Pin (1-48)'), '5');
+    await tester.enterText(find.widgetWithText(TextField, 'ESP32-S3 GPIO Pin (1-48)'), '16');
     await tester.tap(find.text('Add New Relay'));
     await tester.pumpAndSettle();
 

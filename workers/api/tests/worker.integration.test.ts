@@ -202,15 +202,29 @@ test('Cloudflare Worker API: Auth, EMQX Webhook Ingestion, EMQX REST Commands, F
     const alertsJson = (await alertsRes.json()) as { alerts: Array<unknown> };
     assert.equal(alertsJson.alerts.length, 1); // Only live event fired alert, not historical backfill!
 
-    // 4. Outbound EMQX REST v5 Commands (Relay + IO LED + Admin GitHub FOTA)
-    const relRes = await app.request(
+    // 4. Outbound EMQX REST v5 Commands (Optional Relay Add/Toggle/Delete + IO LED + Admin GitHub FOTA)
+    const emptyRelRes = await app.request(
       '/api/devices/DEV001/relays',
       { headers: { Authorization: `Bearer ${regJson.token}` } },
       TEST_ENV,
     );
-    const { relays } = (await relRes.json()) as { relays: Array<{ id: string }> };
+    const { relays: initialRelays } = (await emptyRelRes.json()) as { relays: Array<{ id: string }> };
+    assert.equal(initialRelays.length, 0);
+
+    const addRelRes = await app.request(
+      '/api/devices/DEV001/relays',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${regJson.token}` },
+        body: JSON.stringify({ name: 'Pump Relay', gpioPin: 15, activeHigh: true, failSafeState: false }),
+      },
+      TEST_ENV,
+    );
+    assert.equal(addRelRes.status, 201);
+    const { relay: addedRelay } = (await addRelRes.json()) as { relay: { id: string } };
+
     await app.request(
-      `/api/devices/DEV001/relays/${relays[0].id}`,
+      `/api/devices/DEV001/relays/${addedRelay.id}`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${regJson.token}` },
@@ -218,6 +232,40 @@ test('Cloudflare Worker API: Auth, EMQX Webhook Ingestion, EMQX REST Commands, F
       },
       TEST_ENV,
     );
+
+    const delRelRes = await app.request(
+      `/api/devices/DEV001/relays/${addedRelay.id}`,
+      {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${regJson.token}` },
+      },
+      TEST_ENV,
+    );
+    assert.equal(delRelRes.status, 200);
+
+    // Forgot-password & single-use reset flow
+    const fpRes = await app.request(
+      '/api/auth/forgot-password',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'kishore@example.com' }),
+      },
+      TEST_ENV,
+    );
+    assert.equal(fpRes.status, 200);
+    const fpJson = (await fpRes.json()) as { previewResetToken?: string };
+    assert.ok(fpJson.previewResetToken);
+    const rpRes = await app.request(
+      '/api/auth/reset-password',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: fpJson.previewResetToken, newPassword: 'NewStrongPassword#2026' }),
+      },
+      TEST_ENV,
+    );
+    assert.equal(rpRes.status, 200);
     await app.request(
       '/api/devices/DEV001/io-config',
       {

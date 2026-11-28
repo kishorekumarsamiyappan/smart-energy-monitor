@@ -100,7 +100,7 @@ export const billingCalculateRequestSchema = z.object({
   additionalChargesInr: z.number().finite().min(0).default(0),
 });
 
-export const RESERVED_ESP32_GPIOS = new Set([9, 10, 11, 12, 13, 14, 19, 20, 26, 27, 28, 29, 30, 31, 32]);
+export const RESERVED_ESP32_GPIOS = new Set([4, 5, 19, 20, 26, 27, 28, 29, 30, 31, 32, 48]);
 
 export const createRelaySchema = z.object({
   name: z.string().trim().min(2).max(60),
@@ -110,7 +110,7 @@ export const createRelaySchema = z.object({
     .min(1)
     .max(48)
     .refine((pin) => !RESERVED_ESP32_GPIOS.has(pin), {
-      message: 'Selected GPIO pin is reserved for ADS131M02 SPI, USB, or Flash.',
+      message: 'Selected GPIO pin is reserved for Voltage/Current ADC, LED, USB, or Flash.',
     }),
   activeHigh: z.boolean().default(true),
   failSafeState: z.boolean().default(false),

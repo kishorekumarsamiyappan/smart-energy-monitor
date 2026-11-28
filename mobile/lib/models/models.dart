@@ -79,9 +79,9 @@ class DeviceModel {
         serviceCategory: json['serviceCategory']?.toString() ?? 'LT-IA',
         consumerEligibleForSubsidy: json['consumerEligibleForSubsidy'] != false,
         meterSerialNumber: json['meterSerialNumber']?.toString(),
-        firmwareVersion: json['firmwareVersion']?.toString() ?? '1.0.0',
-        hardwareVersion: json['hardwareVersion']?.toString() ?? 'ESP32-S3-ADS131M02',
-        telemetryIntervalSec: (json['telemetryIntervalSec'] as num?)?.toInt() ?? 5,
+        firmwareVersion: json['firmwareVersion']?.toString() ?? '1.3.1',
+        hardwareVersion: json['hardwareVersion']?.toString() ?? 'ESP32-S3-ADC1-REV3',
+        telemetryIntervalSec: (json['telemetryIntervalSec'] as num?)?.toInt() ?? 10,
         monitoringMode: json['monitoringMode']?.toString() ?? 'automatic',
         isOnline: json['isOnline'] == true,
         wifiRssiDbm: (json['wifiRssiDbm'] as num?)?.toInt(),
@@ -150,9 +150,9 @@ class DeviceSensorConfigModel {
   factory DeviceSensorConfigModel.fromJson(Map<String, dynamic> json) =>
       DeviceSensorConfigModel(
         deviceId: json['deviceId']?.toString() ?? '',
-        voltageSensorModel: json['voltageSensorModel']?.toString() ?? 'ZMPT101B',
-        currentSensorModel: json['currentSensorModel']?.toString() ?? 'SCT-013 (30A/1V)',
-        adcModel: json['adcModel']?.toString() ?? 'ADS131M02',
+        voltageSensorModel: json['voltageSensorModel']?.toString() ?? 'ZMPT101B (GPIO 4)',
+        currentSensorModel: json['currentSensorModel']?.toString() ?? 'SCT-013-000 + 22Ω (GPIO 5)',
+        adcModel: json['adcModel']?.toString() ?? 'ESP32-S3 12-bit ADC1',
         voltageCalibrationFactor: (json['voltageCalibrationFactor'] as num?)?.toDouble() ?? 1.0,
         currentCalibrationFactor: (json['currentCalibrationFactor'] as num?)?.toDouble() ?? 1.0,
         phaseCorrectionDeg: (json['phaseCorrectionDeg'] as num?)?.toDouble() ?? 0.0,
@@ -262,7 +262,7 @@ class AlertEventModel {
       );
 }
 
-const Set<int> kReservedEsp32Gpios = {9, 10, 11, 12, 13, 14, 19, 20, 26, 27, 28, 29, 30, 31, 32};
+const Set<int> kReservedEsp32Gpios = {4, 5, 19, 20, 26, 27, 28, 29, 30, 31, 32, 48};
 
 class DeviceIoConfigModel {
   final String deviceId;
@@ -402,8 +402,8 @@ class DeviceRelayModel {
         id: json['id']?.toString() ?? '',
         deviceId: json['deviceId']?.toString() ?? '',
         channelIndex: (json['channelIndex'] as num?)?.toInt() ?? 1,
-        name: json['name']?.toString() ?? 'Confirmed Relay 1',
-        gpioPin: (json['gpioPin'] as num?)?.toInt() ?? 4,
+        name: json['name']?.toString() ?? 'Optional Relay 1',
+        gpioPin: (json['gpioPin'] as num?)?.toInt() ?? 15,
         activeHigh: json['activeHigh'] != false,
         currentState: json['currentState'] == true,
         failSafeState: json['failSafeState'] == true,

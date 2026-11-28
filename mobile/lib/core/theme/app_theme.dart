@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 class SemColors {
   static const Color primary = Color(0xFF29378F);
   static const Color secondary = Color(0xFF4054B2);
+  static const Color primaryDark = Color(0xFF8CA4FF);
+  static const Color secondaryDark = Color(0xFFA7B8FF);
   static const Color lightCard = Color(0xFFE9EAF8);
   static const Color backgroundLight = Color(0xFFFFFFFF);
   static const Color surfaceLight = Color(0xFFF7F8FD);
@@ -21,6 +23,15 @@ class SemColors {
   static const Color success = Color(0xFF1B9E4B);
   static const Color warning = Color(0xFFF58220);
   static const Color error = Color(0xFFD93025);
+
+  static Color accentPrimary(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? primaryDark : primary;
+
+  static Color accentSecondary(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? secondaryDark : secondary;
+
+  static Color mutedText(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? mutedDark : mutedLight;
 }
 
 class SemTheme {
@@ -97,8 +108,8 @@ class SemTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: SemColors.backgroundDark,
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF5D74E8),
-        secondary: Color(0xFF7589F2),
+        primary: SemColors.primaryDark,
+        secondary: SemColors.secondaryDark,
         surface: SemColors.cardDark,
         error: Color(0xFFF26457),
         onPrimary: Colors.white,
@@ -121,6 +132,8 @@ class SemTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: SemColors.surfaceDark,
+        labelStyle: const TextStyle(color: SemColors.mutedDark),
+        hintStyle: const TextStyle(color: SemColors.mutedDark),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -132,7 +145,7 @@ class SemTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF7589F2), width: 1.8),
+          borderSide: const BorderSide(color: SemColors.secondaryDark, width: 1.8),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -141,6 +154,22 @@ class SemTheme {
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: SemColors.primaryDark,
+          side: const BorderSide(color: SemColors.dividerDark, width: 1.4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: SemColors.primaryDark,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
     );

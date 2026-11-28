@@ -82,6 +82,7 @@ class _InteractiveTelemetryChartState extends State<InteractiveTelemetryChart> {
                 textColor: Theme.of(context).colorScheme.onSurface,
                 gridColor: Theme.of(context).dividerColor.withValues(alpha: 0.45),
                 cardBg: Theme.of(context).cardTheme.color ?? Colors.white,
+                accentPrimary: SemColors.accentPrimary(context),
               ),
             ),
           ),
@@ -98,7 +99,7 @@ class _InteractiveTelemetryChartState extends State<InteractiveTelemetryChart> {
                 values: _range,
                 min: 0,
                 max: 100,
-                activeColor: SemColors.secondary,
+                activeColor: SemColors.accentSecondary(context),
                 onChanged: (v) {
                   if (v.end - v.start >= 10) {
                     setState(() {
@@ -139,12 +140,12 @@ class _InteractiveTelemetryChartState extends State<InteractiveTelemetryChart> {
                   Text('Min', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                 ],
               ),
-              const Row(
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircleAvatar(radius: 5, backgroundColor: SemColors.primary),
-                  SizedBox(width: 5),
-                  Text('Max', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  CircleAvatar(radius: 5, backgroundColor: SemColors.accentPrimary(context)),
+                  const SizedBox(width: 5),
+                  const Text('Max', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                 ],
               ),
             ],
@@ -171,6 +172,7 @@ class _TelemetryChartPainter extends CustomPainter {
   final Color textColor;
   final Color gridColor;
   final Color cardBg;
+  final Color accentPrimary;
 
   _TelemetryChartPainter({
     required this.series,
@@ -179,6 +181,7 @@ class _TelemetryChartPainter extends CustomPainter {
     required this.textColor,
     required this.gridColor,
     required this.cardBg,
+    required this.accentPrimary,
   });
 
   @override
@@ -273,7 +276,7 @@ class _TelemetryChartPainter extends CustomPainter {
         final minPt = Offset(toX(minIdx, s.points.length), toY(s.points[minIdx].$2));
         final maxPt = Offset(toX(maxIdx, s.points.length), toY(s.points[maxIdx].$2));
         canvas.drawCircle(minPt, 4.5, Paint()..color = SemColors.warning);
-        canvas.drawCircle(maxPt, 4.5, Paint()..color = SemColors.primary);
+        canvas.drawCircle(maxPt, 4.5, Paint()..color = accentPrimary);
         _drawText(canvas, '${s.points[minIdx].$2} ${s.unit}', minPt.translate(-18, -16), textColor, 10, FontWeight.w700);
         _drawText(canvas, '${s.points[maxIdx].$2} ${s.unit}', maxPt.translate(-18, -16), textColor, 10, FontWeight.w700);
       }

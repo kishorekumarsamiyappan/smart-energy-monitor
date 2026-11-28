@@ -38,15 +38,15 @@ describe('Phase 10 Web IoT Controls: FOTA, Multi-Relay Offline Schedules, and LE
     renderWithProviders(<DeviceRelaysPage />);
     expect(await screen.findByText(/CONFIRMED DEFAULT RELAY/i)).toBeInTheDocument();
 
-    // Reject reserved SPI pin GPIO 12
+    // Reject reserved GPIO 4 (ZMPT101B ADC)
     fireEvent.change(screen.getByLabelText(/Relay Name/i), { target: { value: 'Invalid Pin Load' } });
-    fireEvent.change(screen.getByLabelText(/ESP32-S3 GPIO Pin/i), { target: { value: '12' } });
+    fireEvent.change(screen.getByLabelText(/ESP32-S3 GPIO Pin/i), { target: { value: '4' } });
     fireEvent.click(screen.getByRole('button', { name: /Add New Relay/i }));
-    expect(await screen.findByText(/reserved for ADS131M02 SPI/i)).toBeInTheDocument();
+    expect(await screen.findByText(/reserved for Voltage\/Current ADC/i)).toBeInTheDocument();
 
-    // Add valid relay CH2 on GPIO 5 (CH1 is on GPIO 4)
+    // Add valid relay CH2 on safe GPIO 16 (GPIO 4 & 5 reserved for ADC)
     fireEvent.change(screen.getByLabelText(/Relay Name/i), { target: { value: 'Geyser Contactor' } });
-    fireEvent.change(screen.getByLabelText(/ESP32-S3 GPIO Pin/i), { target: { value: '5' } });
+    fireEvent.change(screen.getByLabelText(/ESP32-S3 GPIO Pin/i), { target: { value: '16' } });
     fireEvent.click(screen.getByRole('button', { name: /Add New Relay/i }));
     expect(await screen.findByText('Geyser Contactor')).toBeInTheDocument();
     expect(screen.getByText('CH2')).toBeInTheDocument();

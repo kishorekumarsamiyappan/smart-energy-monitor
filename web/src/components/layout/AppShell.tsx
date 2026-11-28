@@ -51,6 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--sem-bg)' }}>
       {/* Top Indigo Header matching AVR reference */}
       <header
+        className="sem-topbar"
         style={{
           backgroundColor: 'var(--sem-header-bg)',
           color: 'var(--sem-header-text)',
@@ -69,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <BrandLogo variant="light" />
         </Link>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div className="sem-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           {isDemoMode && (
             <span
               data-testid="demo-mode-badge"
@@ -237,7 +238,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     transition: 'background-color 0.15s ease',
                   }}
                 >
-                  <Icon size={18} color={active ? '#FFFFFF' : '#4054B2'} />
+                  <Icon size={18} color={active ? '#FFFFFF' : 'var(--sem-secondary)'} />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -249,10 +250,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             style={{ marginTop: 'auto', padding: 14, fontSize: 12, lineHeight: 1.5 }}
           >
             <div style={{ fontWeight: 700, color: 'var(--sem-primary)', marginBottom: 4 }}>
-              ESP32-S3 + ADS131M02
+              SEM • ESP32-S3 + ADC1
             </div>
             <div style={{ color: 'var(--sem-muted)' }}>
-              ZMPT101B • SCT-013 (30A/1V) • Single-phase 230V 50Hz • Advisory Monitor Only
+              ZMPT101B (GPIO 4) • SCT-013-000 (GPIO 5, 22Ω) • 230V 50Hz
             </div>
           </div>
         </aside>
@@ -272,6 +273,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           { href: '/billing', label: 'Billing', icon: Receipt },
           { href: '/devices', label: 'Devices', icon: Cpu },
           { href: '/profile', label: 'Profile', icon: User },
+          ...(user?.role === 'admin' ? [{ href: '/admin', label: 'Admin', icon: ShieldAlert }] : []),
         ].map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

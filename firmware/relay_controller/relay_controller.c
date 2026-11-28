@@ -22,7 +22,8 @@ static SemaphoreHandle_t s_relay_mtx = NULL;
 
 bool relay_ctrl_is_reserved_gpio(int gpio_pin) {
     if (gpio_pin < 1 || gpio_pin > 48) return true;
-    static const int RESERVED[] = {9, 10, 11, 12, 13, 14, 19, 20, 26, 27, 28, 29, 30, 31, 32};
+    // Reserve GPIO 4 (ZMPT101B ADC), GPIO 5 (SCT-013 ADC), USB (19,20), Flash/PSRAM (26..32), RGB LED (48)
+    static const int RESERVED[] = {4, 5, 19, 20, 26, 27, 28, 29, 30, 31, 32, 48};
     for (size_t i = 0; i < sizeof(RESERVED) / sizeof(RESERVED[0]); i++) {
         if (gpio_pin == RESERVED[i]) return true;
     }
@@ -67,7 +68,7 @@ void relay_ctrl_init(void) {
     nvs_handle_t h;
     if (nvs_open(NVS_RELAY_NS, NVS_READONLY, &h) == ESP_OK) {
         size_t sz = sizeof(s_table);
-        if (nvs_get_blob(h, "table", &s_table, &sz) == ESP_OK && sz == sizeof(s_table) && s_table.count >= 1) {
+        if (nvs_get_blob(h, "table", &s_table, &sz) == ESP_OK && sz == sizeof(s_table) && s_table.count <= SEM_MAX_RELAYS) {
             loaded = true;
         }
         nvs_close(h);
@@ -75,27 +76,26 @@ void relay_ctrl_init(void) {
 
     if (!loaded) {
         memset(&s_table, 0, sizeof(s_table));
-        s_table.count = 1;
-        relay_channel_t *ch1 = &s_table.channels[0];
-        snprintf(ch1->id, sizeof(ch1->id), "default-ch1");
-        ch1->channel_index = 1;
-        snprintf(ch1->name, sizeof(ch1->name), "Confirmed Relay 1");
-        ch1->gpio_pin = SEM_DEFAULT_RELAY1_GPIO;
-        ch1->active_high = true;
-        ch1->fail_safe_state = false;
-        ch1->current_state = false;
+        s_table.count = 0;
         save_table_nvs();
     } else {
-        // Restore fail-safe boot state on power cycle
+        // Drop any stale channels mapped to reserved sensor/system pins (e.g. GPIO 4/5) & restore fail-safe state
+        uint8_t kept = 0;
         for (uint8_t i = 0; i < s_table.count; i++) {
-            s_table.channels[i].current_state = s_table.channels[i].fail_safe_state;
-            s_table.channels[i].manual_override = false;
+            if (relay_ctrl_is_reserved_gpio(s_table.channels[i].gpio_pin)) continue;
+            s_table.channels[kept] = s_table.channels[i];
+            s_table.channels[kept].current_state = s_table.channels[kept].fail_safe_state;
+            s_table.channels[kept].manual_override = false;
+            kept++;
+        }
+        if (kept != s_table.count) {
+            s_table.count = kept;
+            save_table_nvs();
         }
     }
 
     configure_all_gpios();
-    ESP_LOGI(TAG, "Relay controller ready (%u channels synced in NVS, CH1 on GPIO %d)",
-             s_table.count, s_table.channels[0].gpio_pin);
+    ESP_LOGI(TAG, "Relay controller ready (%u optional relay channel(s) in NVS)", s_table.count);
     xSemaphoreGive(s_relay_mtx);
 }
 
@@ -261,11 +261,23 @@ void relay_ctrl_apply_sync_json(const cJSON *relays_array, const cJSON *schedule
         }
     }
 
-    if (next.count > 0) {
-        s_table = next;
-        configure_all_gpios();
-        save_table_nvs();
+    for (uint8_t i = 0; i < s_table.count; i++) {
+        int old_pin = s_table.channels[i].gpio_pin;
+        bool still_used = false;
+        for (uint8_t j = 0; j < next.count; j++) {
+            if (next.channels[j].gpio_pin == old_pin) {
+                still_used = true;
+                break;
+            }
+        }
+        if (!still_used && !relay_ctrl_is_reserved_gpio(old_pin)) {
+            gpio_reset_pin((gpio_num_t)old_pin);
+        }
     }
+
+    s_table = next;
+    configure_all_gpios();
+    save_table_nvs();
     xSemaphoreGive(s_relay_mtx);
 }
 

@@ -45,20 +45,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           // Search Bar matching AVR home screen
           TextField(
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Search devices...',
-              prefixIcon: Icon(Icons.search_rounded, color: SemColors.primary),
+              prefixIcon: Icon(Icons.search_rounded, color: SemColors.accentPrimary(context)),
             ),
             onChanged: (v) => setState(() => _search = v),
           ),
           const SizedBox(height: 14),
           if (filtered.isEmpty)
-            const Card(
+            Card(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    Icon(Icons.sensors_off, size: 40, color: SemColors.secondary),
+                    Icon(Icons.sensors_off, size: 40, color: SemColors.accentSecondary(context)),
                     SizedBox(height: 10),
                     Text('No Energy Devices Found', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                     SizedBox(height: 6),
@@ -135,7 +135,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.signal_cellular_alt_rounded,
-                                size: 15, color: online ? SemColors.primary : SemColors.error),
+                                size: 15, color: online ? SemColors.accentPrimary(context) : SemColors.error),
                             const SizedBox(width: 3),
                             Text('${dev.wifiRssiDbm} dBm', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
                           ],
@@ -156,7 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   if (fw?.updateAvailable == true && fw?.latestRelease != null)
                     ActionChip(
-                      avatar: const Icon(Icons.system_update_alt_rounded, size: 16, color: SemColors.primary),
+                      avatar: Icon(Icons.system_update_alt_rounded, size: 16, color: SemColors.accentPrimary(context)),
                       label: Text('Update v${fw!.latestRelease!.version} Ready',
                           style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
                       onPressed: () => Navigator.of(context).push(
@@ -232,7 +232,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const Text('Current Bi-Monthly Est. (LT-IA)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                       Text(
                         '₹${bill.totalEstimatedAmountInr.toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: SemColors.primary),
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: SemColors.accentPrimary(context)),
                       ),
                     ],
                   ),
@@ -367,7 +367,7 @@ class _MetricTile extends StatelessWidget {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: highlight ? SemColors.primary : null,
+            color: highlight ? SemColors.accentPrimary(context) : null,
           ),
         ),
       ],

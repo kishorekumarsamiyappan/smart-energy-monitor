@@ -66,7 +66,7 @@ export default function MonitoringPage() {
           key: 'apparent_power',
           label: 'Apparent Power',
           unit: 'VA',
-          color: '#29378F',
+          color: 'var(--sem-primary)',
           data: points.map((p) => ({ timestamp: p.deviceTimestamp, value: p.apparentPowerVa })),
         },
       ];
@@ -83,7 +83,7 @@ export default function MonitoringPage() {
         key: 'freq',
         label: 'Frequency',
         unit: 'Hz',
-        color: '#4054B2',
+        color: 'var(--sem-secondary)',
         data: points.map((p) => ({ timestamp: p.deviceTimestamp, value: p.frequencyHz })),
       },
     ];
@@ -109,12 +109,12 @@ export default function MonitoringPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
           {devices.length > 1 && (
             <select
               aria-label="Select monitored device"
               className="sem-input"
-              style={{ width: 'auto', minWidth: 200 }}
+              style={{ width: 'auto', minWidth: 180, maxWidth: '100%' }}
               value={activeDevice?.deviceId ?? ''}
               onChange={(e) => setSelectedDeviceId(e.target.value)}
             >
@@ -134,23 +134,23 @@ export default function MonitoringPage() {
 
       {/* 3-Column Summary Strip matching AVR top strip */}
       <div className="sem-card" style={{ padding: 18, marginBottom: 18 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, textAlign: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(105px, 1fr))', gap: 12, textAlign: 'center' }}>
           <div>
-            <Zap size={26} color="#4054B2" style={{ marginBottom: 4 }} />
+            <Zap size={26} color="var(--sem-secondary)" style={{ marginBottom: 4 }} />
             <div style={{ fontSize: 13, fontWeight: 700 }}>Line Voltage</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sem-primary)' }}>
               {latest ? `${latest.voltageRms.toFixed(1)} V` : '--'}
             </div>
           </div>
           <div>
-            <Gauge size={26} color="#4054B2" style={{ marginBottom: 4 }} />
+            <Gauge size={26} color="var(--sem-secondary)" style={{ marginBottom: 4 }} />
             <div style={{ fontSize: 13, fontWeight: 700 }}>Power Quality</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sem-success)' }}>
               {latest ? `${latest.powerFactor.toFixed(2)} PF` : '--'}
             </div>
           </div>
           <div>
-            <Activity size={26} color="#4054B2" style={{ marginBottom: 4 }} />
+            <Activity size={26} color="var(--sem-secondary)" style={{ marginBottom: 4 }} />
             <div style={{ fontSize: 13, fontWeight: 700 }}>Active Load</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sem-warning)' }}>
               {latest ? `${(latest.activePowerW / 1000).toFixed(2)} kW` : '--'}
@@ -202,7 +202,7 @@ export default function MonitoringPage() {
               <option value="yesterday">Yesterday</option>
               <option value="7d">Last 7 Days</option>
             </select>
-            <Calendar size={20} color="#29378F" />
+            <Calendar size={20} color="var(--sem-primary)" />
           </div>
 
           <button
@@ -247,7 +247,7 @@ export default function MonitoringPage() {
                 width: 22,
                 height: 22,
                 borderRadius: '50%',
-                background: showMinMax ? '#29378F' : 'var(--sem-border)',
+                background: showMinMax ? 'var(--sem-primary)' : 'var(--sem-border)',
                 color: '#FFFFFF',
                 display: 'inline-flex',
                 alignItems: 'center',

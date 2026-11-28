@@ -19,6 +19,7 @@ bool pstore_save_mqtt_creds(const char *device_id, const char *user, const char 
 
 bool pstore_load_calibration(float *v_cal, float *i_cal, float *phase_deg);
 bool pstore_save_calibration(float v_cal, float i_cal, float phase_deg);
+void pstore_factory_reset(void);
 
 #ifdef __cplusplus
 }

@@ -212,7 +212,7 @@ export function TelemetryChart({
                       cx={toX(maxIdx, s.data.length)}
                       cy={toY(s.data[maxIdx].value)}
                       r="5"
-                      fill="#29378F"
+                      fill="var(--sem-primary)"
                       stroke="#FFFFFF"
                       strokeWidth="1.5"
                     />
@@ -288,7 +288,7 @@ export function TelemetryChart({
               max={Math.max(0, rangeEnd - 10)}
               value={rangeStart}
               onChange={(e) => setRangeStart(Number(e.target.value))}
-              style={{ width: '100%', accentColor: '#4054B2' }}
+              style={{ width: '100%', accentColor: 'var(--sem-secondary)' }}
             />
             <input
               type="range"
@@ -297,7 +297,7 @@ export function TelemetryChart({
               max={100}
               value={rangeEnd}
               onChange={(e) => setRangeEnd(Number(e.target.value))}
-              style={{ width: '100%', accentColor: '#29378F' }}
+              style={{ width: '100%', accentColor: 'var(--sem-primary)' }}
             />
           </div>
           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sem-muted)', minWidth: 74, textAlign: 'right' }}>
@@ -321,7 +321,7 @@ export function TelemetryChart({
               <span style={{ color: 'var(--sem-muted)', fontWeight: 600 }}>Min</span>
             </div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#29378F' }} />
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--sem-primary)' }} />
               <span style={{ color: 'var(--sem-muted)', fontWeight: 600 }}>Max</span>
             </div>
           </>

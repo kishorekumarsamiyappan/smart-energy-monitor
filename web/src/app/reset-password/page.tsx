@@ -36,8 +36,17 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--sem-surface)', padding: '32px 16px' }}>
-      <div style={{ maxWidth: 420, margin: '0 auto' }} className="sem-card">
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--sem-surface)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px 16px',
+      }}
+    >
+      <div style={{ maxWidth: 420, width: '100%' }} className="sem-card">
         <div style={{ padding: 24 }}>
           <Link href="/login" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--sem-primary)', fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
             <ArrowLeft size={16} /> Back to Login
@@ -51,7 +60,7 @@ export default function ResetPasswordPage() {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <input className="sem-input" placeholder="Reset token" value={token} onChange={(e) => setToken(e.target.value)} required />
             <div style={{ position: 'relative' }}>
-              <Lock size={16} color="#4054B2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+              <Lock size={16} color="var(--sem-secondary)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
               <input type="password" className="sem-input" style={{ paddingLeft: 36 }} placeholder="New password (min 8 chars)" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
             </div>
             <input type="password" className="sem-input" placeholder="Confirm new password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />

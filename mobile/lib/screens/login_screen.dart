@@ -50,116 +50,127 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final accentIcon = SemColors.accentSecondary(context);
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 56, 24, 44),
-              color: SemColors.primary,
-              child: const Column(
-                children: [
-                  BrandLogo(lightOnDark: true),
-                  SizedBox(height: 14),
-                  Text(
-                    'Welcome Back',
-                    style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Sign in to monitor your ESP32-S3 meters',
-                    style: TextStyle(color: Colors.white70, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-            Transform.translate(
-              offset: const Offset(0, -22),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight - 40),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: Card(
+                    clipBehavior: Clip.antiAlias,
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (_error != null)
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            margin: const EdgeInsets.only(bottom: 14),
-                            decoration: BoxDecoration(
-                              color: SemColors.error.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              _error!,
-                              style: const TextStyle(color: SemColors.error, fontWeight: FontWeight.w600, fontSize: 13),
-                            ),
-                          ),
-                        TextField(
-                          controller: _identifierCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Email or Mobile Number',
-                            prefixIcon: Icon(Icons.mail_outline, color: SemColors.secondary),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextField(
-                          controller: _passwordCtrl,
-                          obscureText: _obscure,
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            prefixIcon: const Icon(Icons.lock_outline, color: SemColors.secondary),
-                            suffixIcon: IconButton(
-                              icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                              onPressed: () => setState(() => _obscure = !_obscure),
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-                            ),
-                            child: const Text('Forgot password?'),
-                          ),
-                        ),
-                        ElevatedButton(
-                          onPressed: _loading ? null : _submit,
-                          child: Text(_loading ? 'Signing in...' : 'Login'),
-                        ),
-                        const SizedBox(height: 14),
-                        OutlinedButton.icon(
-                          icon: const Icon(Icons.play_circle_outline, color: SemColors.warning),
-                          label: const Text(
-                            'Try Interactive Demo Mode',
-                            style: TextStyle(color: SemColors.warning, fontWeight: FontWeight.w700),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: SemColors.warning, width: 1.5),
-                          ),
-                          onPressed: () async {
-                            await context.read<AppState>().enterDemoMode();
-                            if (!context.mounted) return;
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (_) => const MainShellScreen()),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text('New user? '),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
+                          color: SemColors.primary,
+                          child: const Column(
+                            children: [
+                              BrandLogo(lightOnDark: true),
+                              SizedBox(height: 12),
+                              Text(
+                                'Welcome Back',
+                                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
                               ),
-                              child: const Text('Create Account'),
-                            ),
-                          ],
+                              SizedBox(height: 4),
+                              Text(
+                                'Sign in to monitor your ESP32-S3 meters',
+                                style: TextStyle(color: Colors.white70, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (_error != null)
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  margin: const EdgeInsets.only(bottom: 14),
+                                  decoration: BoxDecoration(
+                                    color: SemColors.error.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    _error!,
+                                    style: const TextStyle(color: SemColors.error, fontWeight: FontWeight.w600, fontSize: 13),
+                                  ),
+                                ),
+                              TextField(
+                                controller: _identifierCtrl,
+                                decoration: InputDecoration(
+                                  labelText: 'Email or Mobile Number',
+                                  prefixIcon: Icon(Icons.mail_outline, color: accentIcon),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              TextField(
+                                controller: _passwordCtrl,
+                                obscureText: _obscure,
+                                decoration: InputDecoration(
+                                  labelText: 'Password',
+                                  prefixIcon: Icon(Icons.lock_outline, color: accentIcon),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                                    onPressed: () => setState(() => _obscure = !_obscure),
+                                  ),
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () => Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                                  ),
+                                  child: const Text('Forgot password?'),
+                                ),
+                              ),
+                              ElevatedButton(
+                                onPressed: _loading ? null : _submit,
+                                child: Text(_loading ? 'Signing in...' : 'Login'),
+                              ),
+                              const SizedBox(height: 14),
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.play_circle_outline, color: SemColors.warning),
+                                label: const Text(
+                                  'Try Interactive Demo Mode',
+                                  style: TextStyle(color: SemColors.warning, fontWeight: FontWeight.w700),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: SemColors.warning, width: 1.5),
+                                ),
+                                onPressed: () async {
+                                  await context.read<AppState>().enterDemoMode();
+                                  if (!context.mounted) return;
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(builder: (_) => const MainShellScreen()),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 14),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text('New user? '),
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).push(
+                                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                                    ),
+                                    child: const Text('Create Account'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -167,7 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

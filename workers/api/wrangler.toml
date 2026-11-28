@@ -6,7 +6,7 @@ workers_dev = true
 [vars]
 CORS_ORIGINS = "*"
 TELEMETRY_RETENTION_DAYS = "30"
-GITHUB_FIRMWARE_REPO = "owner/smart-energy-monitor-firmware"
+GITHUB_FIRMWARE_REPO = "kishorekumarsamiyappan/smart-energy-monitor"
 
 # Daily 02:30 AM IST (21:00 UTC) cron prunes raw >30d telemetry while preserving
 # energy_daily, energy_counters, and billing_cycles indefinitely under Supabase 500MB free tier.

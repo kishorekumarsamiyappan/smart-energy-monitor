@@ -12,6 +12,7 @@ import {
   Gauge,
   GitCommitHorizontal,
   Sliders,
+  Trash2,
 } from 'lucide-react';
 import { formatKolkataDateTime, HARDWARE_SPEC, StatusLedMode } from '@sem/shared';
 import { AppShell } from '@/components/layout/AppShell';
@@ -39,7 +40,9 @@ export default function DeviceSettingsPage() {
     firmwareByDevice,
     updateSensorConfig,
     updateIoConfig,
+    updateTelemetryInterval,
     triggerFirmwareOta,
+    removeDevice,
   } = useData();
 
   const deviceId = decodeURIComponent(params?.deviceId ?? '');
@@ -115,7 +118,7 @@ export default function DeviceSettingsPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 18 }}>
         {/* AVR-styled divided menu list */}
         <div className="sem-card" style={{ overflow: 'hidden', alignSelf: 'start' }}>
           {menuItems.map((item, idx) => {
@@ -144,10 +147,10 @@ export default function DeviceSettingsPage() {
                   }}
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 14, fontSize: 15, fontWeight: 600 }}>
-                    <Icon size={22} color="#4054B2" />
+                    <Icon size={22} color="var(--sem-secondary)" />
                     {item.label}
                   </span>
-                  <ChevronRight size={20} color="#29378F" />
+                  <ChevronRight size={20} color="var(--sem-primary)" />
                 </button>
               </React.Fragment>
             );
@@ -166,17 +169,17 @@ export default function DeviceSettingsPage() {
                 <div className="sem-lavender-card" style={{ padding: 12 }}>
                   <div style={{ fontSize: 12, color: 'var(--sem-muted)', fontWeight: 700 }}>Voltage Sensor</div>
                   <div style={{ fontSize: 15, fontWeight: 700 }}>{cfg?.voltageSensorModel ?? HARDWARE_SPEC.voltageSensor}</div>
-                  <div style={{ fontSize: 12, color: 'var(--sem-muted)' }}>230V AC isolated sensing module (signal-conditioned)</div>
+                  <div style={{ fontSize: 12, color: 'var(--sem-muted)' }}>230V AC isolated sensing module (GPIO 4 / ADC1_CH3, calibrated)</div>
                 </div>
                 <div className="sem-lavender-card" style={{ padding: 12 }}>
                   <div style={{ fontSize: 12, color: 'var(--sem-muted)', fontWeight: 700 }}>Current Sensor</div>
                   <div style={{ fontSize: 15, fontWeight: 700 }}>{cfg?.currentSensorModel ?? HARDWARE_SPEC.currentSensor}</div>
-                  <div style={{ fontSize: 12, color: 'var(--sem-muted)' }}>Built-in burden resistor (no external burden resistor allowed)</div>
+                  <div style={{ fontSize: 12, color: 'var(--sem-muted)' }}>100A:50mA CT with external 22 Ω burden resistor (GPIO 5 / ADC1_CH4)</div>
                 </div>
                 <div className="sem-lavender-card" style={{ padding: 12 }}>
                   <div style={{ fontSize: 12, color: 'var(--sem-muted)', fontWeight: 700 }}>ADC</div>
                   <div style={{ fontSize: 15, fontWeight: 700 }}>{cfg?.adcModel ?? HARDWARE_SPEC.adc}</div>
-                  <div style={{ fontSize: 12, color: 'var(--sem-muted)' }}>Simultaneous 2-channel 24-bit Sigma-Delta SPI ADC</div>
+                  <div style={{ fontSize: 12, color: 'var(--sem-muted)' }}>12-bit SAR ADC1 @ 5 kSPS RMS window (GPIO 4 &amp; GPIO 5)</div>
                 </div>
               </div>
             </div>
@@ -243,20 +246,20 @@ export default function DeviceSettingsPage() {
               <h2 style={{ marginTop: 0, fontSize: 18 }}>I/O Configuration &amp; LED Indicators</h2>
               <div style={{ display: 'grid', gap: 12, marginTop: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>ADC Communication</span>
-                  <StatusBadge tone={cfg?.adcSpiOk !== false ? 'success' : 'error'} label={cfg?.adcSpiOk !== false ? 'SPI OK' : 'SPI FAULT'} />
+                  <span>ADC1 Channels (GPIO 4 &amp; 5)</span>
+                  <StatusBadge tone={cfg?.adcSpiOk !== false ? 'success' : 'error'} label={cfg?.adcSpiOk !== false ? 'ADC1 OK' : 'ADC FAULT'} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>DRDY Interrupt Pin</span>
-                  <StatusBadge tone={cfg?.drdyStatusOk !== false ? 'success' : 'error'} label={cfg?.drdyStatusOk !== false ? 'ACTIVE 4 kSPS' : 'TIMEOUT'} />
+                  <span>RMS Sampling Window</span>
+                  <StatusBadge tone={cfg?.drdyStatusOk !== false ? 'success' : 'error'} label={cfg?.drdyStatusOk !== false ? 'ACTIVE 5 kSPS' : 'TIMEOUT'} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
                   <span>Firmware Version</span>
-                  <strong>{device?.firmwareVersion ?? '1.2.0'}</strong>
+                  <strong>{device?.firmwareVersion ?? '1.3.1'}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
                   <span>Hardware Version</span>
-                  <strong>{device?.hardwareVersion ?? 'ESP32-S3-ADS131M02'}</strong>
+                  <strong>{device?.hardwareVersion ?? 'ESP32-S3-ADC1-REV3'}</strong>
                 </div>
 
                 <hr className="sem-dashed-divider" />
@@ -412,10 +415,37 @@ export default function DeviceSettingsPage() {
                   <span>Wi-Fi Status</span>
                   <strong>{device?.isOnline ? `Connected (${device.wifiRssiDbm ?? -55} dBm)` : 'Disconnected'}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                  <span>Telemetry Interval</span>
-                  <strong>Every {device?.telemetryIntervalSec ?? 5} seconds</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 14, flexWrap: 'wrap' }}>
+                  <div>
+                    <div>Telemetry Interval</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--sem-muted)' }}>
+                      Recommended: 10s balance with 20s MQTT Keepalive (~30s power-cut LWT)
+                    </div>
+                  </div>
+                  <select
+                    aria-label="Telemetry publish interval"
+                    className="sem-input"
+                    style={{ width: 'auto', minWidth: 185 }}
+                    value={String(device?.telemetryIntervalSec ?? 10)}
+                    onChange={async (e) => {
+                      if (!device) return;
+                      const nextSec = Number(e.target.value);
+                      await updateTelemetryInterval(device.deviceId, nextSec);
+                      setSavedNotice(`Telemetry interval updated to ${nextSec}s and pushed to ESP32-S3.`);
+                    }}
+                  >
+                    <option value="5">Every 5s (Ultra Fast)</option>
+                    <option value="10">Every 10s (Recommended)</option>
+                    <option value="15">Every 15s (Balanced)</option>
+                    <option value="30">Every 30s (Low Data)</option>
+                    <option value="60">Every 60s (Economy)</option>
+                  </select>
                 </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                  <span>Power-Cut LWT Detection</span>
+                  <strong>20s Keepalive (~30s LWT / 45s Stale)</strong>
+                </div>
+                {savedNotice && <div style={{ color: 'var(--sem-success)', fontSize: 13, fontWeight: 600 }}>{savedNotice}</div>}
                 <hr className="sem-dashed-divider" />
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <Link href="/manual-reading" className="sem-btn sem-btn-outline" style={{ fontSize: 13 }}>
@@ -557,6 +587,41 @@ export default function DeviceSettingsPage() {
                   <StatusBadge tone="info" label={cfg?.calibrationStatus ?? 'verified'} />
                 </div>
               </div>
+              {device && !isDemoMode && (
+                <div
+                  style={{
+                    marginTop: 22,
+                    paddingTop: 16,
+                    borderTop: '1px solid var(--sem-divider)',
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sem-error)', marginBottom: 6 }}>
+                    Factory Reset &amp; Remove Device
+                  </div>
+                  <p style={{ fontSize: 12, color: 'var(--sem-muted)', marginTop: 0, marginBottom: 12 }}>
+                    Removing this device clears it from your SEM account. To re-pair from scratch, also hold BOOT for 5s or run Factory Reset in the mobile app to wipe Wi-Fi &amp; MQTT credentials from NVS.
+                  </p>
+                  <button
+                    type="button"
+                    className="sem-btn sem-btn-outline"
+                    style={{ color: 'var(--sem-error)', borderColor: 'var(--sem-error)' }}
+                    onClick={async () => {
+                      if (
+                        !window.confirm(
+                          `Remove "${device.name}" (${device.deviceId}) from your account? You can re-add it cleanly afterwards.`,
+                        )
+                      ) {
+                        return;
+                      }
+                      await removeDevice(device.deviceId);
+                      router.replace('/devices');
+                    }}
+                  >
+                    <Trash2 size={15} />
+                    Factory Reset / Remove
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -21,7 +21,7 @@ class SmartEnergyMonitorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeMode = context.select<AppState, ThemeMode>((s) => s.themeMode);
     return MaterialApp(
-      title: 'Smart Energy Monitor',
+      title: 'SEM',
       debugShowCheckedModeBanner: false,
       theme: SemTheme.light(),
       darkTheme: SemTheme.dark(),

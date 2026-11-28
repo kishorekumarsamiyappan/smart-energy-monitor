@@ -60,8 +60,13 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 22),
             const Text(
-              'Smart Energy Monitor',
-              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800),
+              'SEM',
+              style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: 1.5),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Smart Energy Monitor • TNEB LT-IA',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
             ),
             const SizedBox(height: 6),
             const Text(

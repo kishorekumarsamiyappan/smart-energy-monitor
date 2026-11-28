@@ -10,7 +10,7 @@ extern "C" {
 
 #define SEM_MAX_RELAYS 8
 #define SEM_MAX_SCHEDULES 6
-#define SEM_DEFAULT_RELAY1_GPIO 4
+#define SEM_DEFAULT_RELAY1_GPIO 15
 
 typedef struct {
     char id[40];

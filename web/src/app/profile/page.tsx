@@ -163,15 +163,15 @@ export default function ProfilePage() {
 
               <div style={{ display: 'grid', gap: 11, fontSize: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Building2 size={18} color="#4054B2" />
+                  <Building2 size={18} color="var(--sem-secondary)" />
                   <span>{user?.organization || 'Smart Energy Residence'}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Mail size={18} color="#4054B2" />
+                  <Mail size={18} color="var(--sem-secondary)" />
                   <span>{user?.email}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Phone size={18} color="#4054B2" />
+                  <Phone size={18} color="var(--sem-secondary)" />
                   <span>{user?.mobileNumber}</span>
                 </div>
               </div>
@@ -198,31 +198,29 @@ export default function ProfilePage() {
             style={{ border: 'none', padding: '15px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', color: 'var(--sem-text)' }}
           >
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, fontSize: 15, fontWeight: 600 }}>
-              {theme === 'dark' ? <Sun size={20} color="#4054B2" /> : <Moon size={20} color="#4054B2" />}
+              {theme === 'dark' ? <Sun size={20} color="var(--sem-secondary)" /> : <Moon size={20} color="var(--sem-secondary)" />}
               Theme Mode ({theme === 'dark' ? 'Dark' : 'Light'})
             </span>
-            <ChevronRight size={20} color="#29378F" />
+            <ChevronRight size={20} color="var(--sem-primary)" />
           </button>
 
-          <button
-            type="button"
-            className="sem-lavender-card"
-            onClick={() => {
-              if (isDemoMode) {
+          {isDemoMode && (
+            <button
+              type="button"
+              className="sem-lavender-card"
+              onClick={() => {
                 exitDemoMode();
                 router.push('/login');
-              } else {
-                enterDemoMode();
-              }
-            }}
-            style={{ border: 'none', padding: '15px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', color: 'var(--sem-text)' }}
-          >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, fontSize: 15, fontWeight: 600 }}>
-              <PlayCircle size={20} color="#F58220" />
-              {isDemoMode ? 'Exit Demo Mode' : 'Switch to Isolated Demo Mode'}
-            </span>
-            <ChevronRight size={20} color="#29378F" />
-          </button>
+              }}
+              style={{ border: 'none', padding: '15px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', color: 'var(--sem-text)' }}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, fontSize: 15, fontWeight: 600 }}>
+                <PlayCircle size={20} color="#F58220" />
+                Exit Demo Mode
+              </span>
+              <ChevronRight size={20} color="var(--sem-primary)" />
+            </button>
+          )}
 
           <button
             type="button"
@@ -231,10 +229,10 @@ export default function ProfilePage() {
             style={{ border: 'none', padding: '15px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', color: 'var(--sem-text)' }}
           >
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, fontSize: 15, fontWeight: 600 }}>
-              <Lock size={20} color="#4054B2" />
+              <Lock size={20} color="var(--sem-secondary)" />
               Change Password
             </span>
-            <ChevronRight size={20} color="#29378F" />
+            <ChevronRight size={20} color="var(--sem-primary)" />
           </button>
 
           <button
@@ -244,10 +242,10 @@ export default function ProfilePage() {
             style={{ border: 'none', padding: '15px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', color: 'var(--sem-text)' }}
           >
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, fontSize: 15, fontWeight: 600 }}>
-              <ShieldCheck size={20} color="#4054B2" />
+              <ShieldCheck size={20} color="var(--sem-secondary)" />
               Privacy Policy
             </span>
-            <ChevronRight size={20} color="#29378F" />
+            <ChevronRight size={20} color="var(--sem-primary)" />
           </button>
 
           <button
@@ -257,10 +255,10 @@ export default function ProfilePage() {
             style={{ border: 'none', padding: '15px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', color: 'var(--sem-text)' }}
           >
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, fontSize: 15, fontWeight: 600 }}>
-              <FileText size={20} color="#4054B2" />
+              <FileText size={20} color="var(--sem-secondary)" />
               Terms &amp; Condition
             </span>
-            <ChevronRight size={20} color="#29378F" />
+            <ChevronRight size={20} color="var(--sem-primary)" />
           </button>
         </div>
 

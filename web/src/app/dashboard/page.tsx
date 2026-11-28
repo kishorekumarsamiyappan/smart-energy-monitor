@@ -74,7 +74,7 @@ export default function DashboardPage() {
         <div style={{ position: 'relative', flex: 1 }}>
           <Search
             size={18}
-            color="#29378F"
+            color="var(--sem-primary)"
             style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}
           />
           <input
@@ -109,7 +109,7 @@ export default function DashboardPage() {
           </Link>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 290px), 1fr))', gap: 18 }}>
           {filteredDevices.map((dev) => {
             const latest = latestByDevice[dev.deviceId];
             const stale = isTelemetryStale(latest?.ingestedAt ?? dev.lastSeenAt);
@@ -217,7 +217,7 @@ export default function DashboardPage() {
                     Waiting for live ESP32-S3 telemetry packets...
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'center' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: 14, alignItems: 'center' }}>
                     <div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sem-muted)' }}>Voltage / Freq</div>
                       <div style={{ fontSize: 17, fontWeight: 700, marginTop: 2 }}>
@@ -251,31 +251,31 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {/* Primary Relay & Offline Schedule Quick Row */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: 8,
-                    padding: '8px 12px',
-                    borderRadius: 12,
-                    background: 'var(--sem-lavender)',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 700 }}>
-                      Relay CH1: {primaryRelay?.name ?? 'Main Load'} ({deviceRelays.length} ch)
+                {/* Optional Relay & Offline Schedule Quick Row (hidden unless relays are added) */}
+                {primaryRelay && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                      padding: '8px 12px',
+                      borderRadius: 12,
+                      background: 'var(--sem-lavender)',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700 }}>
+                        Relay CH{primaryRelay.channelIndex}: {primaryRelay.name} ({deviceRelays.length} ch)
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--sem-muted)' }}>
+                        {primarySchedule
+                          ? `Offline schedule: ${primarySchedule.startTimeIst}–${primarySchedule.stopTimeIst} IST`
+                          : 'No active schedule • NVS offline-ready'}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 11.5, color: 'var(--sem-muted)' }}>
-                      {primarySchedule
-                        ? `Offline schedule: ${primarySchedule.startTimeIst}–${primarySchedule.stopTimeIst} IST`
-                        : 'No active schedule • NVS offline-ready'}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {primaryRelay && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <button
                         type="button"
                         className={primaryRelay.currentState ? 'sem-btn sem-btn-primary' : 'sem-btn sem-btn-outline'}
@@ -285,17 +285,17 @@ export default function DashboardPage() {
                         <Power size={13} />
                         {primaryRelay.currentState ? 'ON' : 'OFF'}
                       </button>
-                    )}
-                    <Link
-                      href={`/devices/${dev.deviceId}/relays`}
-                      onClick={() => setSelectedDeviceId(dev.deviceId)}
-                      className="sem-btn sem-btn-outline"
-                      style={{ padding: '5px 10px', fontSize: 12 }}
-                    >
-                      Relays
-                    </Link>
+                      <Link
+                        href={`/devices/${dev.deviceId}/relays`}
+                        onClick={() => setSelectedDeviceId(dev.deviceId)}
+                        className="sem-btn sem-btn-outline"
+                        style={{ padding: '5px 10px', fontSize: 12 }}
+                      >
+                        Relays
+                      </Link>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Dashed Box at Bottom of Card — Billing Summary matching AVR Manual Mode box */}
                 <div
@@ -326,7 +326,7 @@ export default function DashboardPage() {
                       style={{
                         width: `${cycleProgress}%`,
                         height: '100%',
-                        background: billSummary.unitsConsumed > 500 ? '#D93025' : '#4054B2',
+                        background: billSummary.unitsConsumed > 500 ? '#D93025' : 'var(--sem-secondary)',
                       }}
                     />
                   </div>

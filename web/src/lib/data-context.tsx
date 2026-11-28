@@ -55,7 +55,7 @@ interface DataContextValue {
   activeTariff: TariffVersion;
   isLoadingData: boolean;
   dataError: string | null;
-  refreshAll: () => Promise<void>;
+  refreshAll: (opts?: { silent?: boolean }) => Promise<void>;
   loadDeviceHistory: (deviceId: string, rangeDays: number, startDate?: string, endDate?: string) => Promise<TelemetryPoint[]>;
   addDevice: (input: {
     deviceId: string;
@@ -65,6 +65,7 @@ interface DataContextValue {
     meterSerialNumber?: string;
   }) => Promise<Device>;
   renameDevice: (deviceId: string, name: string) => Promise<void>;
+  updateTelemetryInterval: (deviceId: string, telemetryIntervalSec: number) => Promise<void>;
   removeDevice: (deviceId: string) => Promise<void>;
   updateSensorConfig: (deviceId: string, patch: Partial<DeviceSensorConfig>) => Promise<void>;
   acknowledgeAlert: (alertId: string) => Promise<void>;
@@ -210,7 +211,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setDataError(null);
   }, []);
 
-  const refreshAll = useCallback(async () => {
+  const refreshAll = useCallback(async (opts?: { silent?: boolean }) => {
     if (isDemoMode) {
       loadDemoData();
       return;
@@ -224,7 +225,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    setIsLoadingData(true);
+    if (!opts?.silent) {
+      setIsLoadingData(true);
+    }
     setDataError(null);
     try {
       const [devRes, billRes, tariffRes, alertsRes] = await Promise.all([
@@ -301,6 +304,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     void refreshAll();
   }, [refreshAll]);
 
+  useEffect(() => {
+    if (isDemoMode || !user || !token) return;
+    const timer = window.setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        void refreshAll({ silent: true });
+      }
+    }, 10_000);
+    return () => window.clearInterval(timer);
+  }, [isDemoMode, refreshAll, token, user]);
+
   const loadDeviceHistory = useCallback(
     async (deviceId: string, rangeDays: number, startDate?: string, endDate?: string) => {
       if (isDemoMode) {
@@ -340,9 +353,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         serviceCategory: 'LT-IA',
         consumerEligibleForSubsidy: input.consumerEligibleForSubsidy,
         meterSerialNumber: input.meterSerialNumber || null,
-        firmwareVersion: '1.2.0-demo',
-        hardwareVersion: 'ESP32-S3-ADS131M02-REV2',
-        telemetryIntervalSec: 5,
+        firmwareVersion: '1.3.1-demo',
+        hardwareVersion: 'ESP32-S3-ADC1-REV3',
+        telemetryIntervalSec: 10,
         monitoringMode: 'automatic',
         isOnline: true,
         wifiRssiDbm: -58,
@@ -384,6 +397,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ name }),
     });
     await refreshAll();
+  };
+
+  const updateTelemetryInterval = async (deviceId: string, telemetryIntervalSec: number) => {
+    const cleanSec = Math.max(5, Math.min(3600, Math.round(telemetryIntervalSec)));
+    if (isDemoMode) {
+      setDevices((prev) =>
+        prev.map((d) => (d.deviceId === deviceId ? { ...d, telemetryIntervalSec: cleanSec } : d)),
+      );
+      return;
+    }
+    await apiRequest(`/devices/${deviceId}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify({ telemetryIntervalSec: cleanSec }),
+    });
+    await refreshAll({ silent: true });
   };
 
   const removeDevice = async (deviceId: string) => {
@@ -630,7 +659,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (isDemoMode) {
       setRelaysByDevice((prev) => ({
         ...prev,
-        [deviceId]: (prev[deviceId] ?? []).filter((r) => r.id !== relayId || r.isConfirmedDefault),
+        [deviceId]: (prev[deviceId] ?? []).filter((r) => r.id !== relayId),
       }));
       return;
     }
@@ -771,6 +800,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         loadDeviceHistory,
         addDevice,
         renameDevice,
+        updateTelemetryInterval,
         removeDevice,
         updateSensorConfig,
         acknowledgeAlert,

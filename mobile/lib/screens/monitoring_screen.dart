@@ -53,7 +53,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
             ChartSeriesData(
               label: 'Apparent Power',
               unit: 'VA',
-              color: SemColors.primary,
+              color: SemColors.accentPrimary(context),
               points: pts.map((p) => (p.deviceTimestamp, p.apparentPowerVa)).toList(),
             ),
           ];
@@ -148,7 +148,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                       ),
                       const SizedBox(width: 8),
                       IconButton.outlined(
-                        icon: const Icon(Icons.refresh_rounded, color: SemColors.primary),
+                        icon: Icon(Icons.refresh_rounded, color: SemColors.accentPrimary(context)),
                         onPressed: () {
                           if (dev != null) state.loadHistory(dev.deviceId, days: _days);
                         },
@@ -173,7 +173,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                         children: [
                           Checkbox(
                             value: _showMinMax,
-                            activeColor: SemColors.primary,
+                            activeColor: SemColors.accentPrimary(context),
                             onChanged: (v) => setState(() => _showMinMax = v ?? true),
                           ),
                           const Text('Min / Max', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -203,10 +203,10 @@ class _SummaryBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: SemColors.secondary, size: 26),
+        Icon(icon, color: SemColors.accentSecondary(context), size: 26),
         const SizedBox(height: 4),
         Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: SemColors.primary)),
+        Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: SemColors.accentPrimary(context))),
       ],
     );
   }

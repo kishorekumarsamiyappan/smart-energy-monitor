@@ -64,24 +64,33 @@ export default function RegisterPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--sem-surface)', paddingBottom: 40 }}>
-      <div style={{ background: '#29378F', color: '#FFFFFF', padding: '20px 24px 44px' }}>
-        <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Link href="/login" style={{ color: '#FFFFFF', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
-            <ArrowLeft size={18} /> Back
-          </Link>
-          <BrandLogo variant="light" compact />
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--sem-surface)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px 16px',
+      }}
+    >
+      <div className="sem-card" style={{ maxWidth: 480, width: '100%', overflow: 'hidden' }}>
+        <div style={{ background: '#29378F', color: '#FFFFFF', padding: '20px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Link href="/login" style={{ color: '#FFFFFF', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
+              <ArrowLeft size={18} /> Back
+            </Link>
+            <BrandLogo variant="light" compact />
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Create Account</h1>
+            <p style={{ margin: '4px 0 0', fontSize: 13, opacity: 0.85 }}>
+              Register to connect your Smart Energy Monitor devices
+            </p>
+          </div>
         </div>
-        <div style={{ maxWidth: 480, margin: '12px auto 0' }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Create Account</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, opacity: 0.85 }}>
-            Register to connect your Smart Energy Monitor devices
-          </p>
-        </div>
-      </div>
 
-      <div style={{ maxWidth: 480, margin: '-24px auto 0', padding: '0 16px' }}>
-        <div className="sem-card" style={{ padding: 24 }}>
+        <div style={{ padding: 24 }}>
           {error && (
             <div role="alert" style={{ background: 'rgba(217,48,37,0.12)', color: 'var(--sem-error)', padding: '10px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
               {error}
@@ -97,7 +106,7 @@ export default function RegisterPage() {
             <div>
               <label htmlFor="fullName" style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Full Name</label>
               <div style={{ position: 'relative' }}>
-                <User size={16} color="#4054B2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                <User size={16} color="var(--sem-secondary)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                 <input id="fullName" className="sem-input" style={{ paddingLeft: 36 }} required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Kishorekumar S" />
               </div>
             </div>
@@ -105,7 +114,7 @@ export default function RegisterPage() {
             <div>
               <label htmlFor="email" style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Email</label>
               <div style={{ position: 'relative' }}>
-                <Mail size={16} color="#4054B2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                <Mail size={16} color="var(--sem-secondary)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                 <input id="email" type="email" className="sem-input" style={{ paddingLeft: 36 }} required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
               </div>
             </div>
@@ -113,7 +122,7 @@ export default function RegisterPage() {
             <div>
               <label htmlFor="mobileNumber" style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Mobile Number</label>
               <div style={{ position: 'relative' }}>
-                <Phone size={16} color="#4054B2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                <Phone size={16} color="var(--sem-secondary)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                 <input id="mobileNumber" type="tel" className="sem-input" style={{ paddingLeft: 36 }} required value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} placeholder="9876543210" />
               </div>
             </div>
@@ -121,7 +130,7 @@ export default function RegisterPage() {
             <div>
               <label htmlFor="organization" style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Organization / Home Label (Optional)</label>
               <div style={{ position: 'relative' }}>
-                <Building2 size={16} color="#4054B2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                <Building2 size={16} color="var(--sem-secondary)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                 <input id="organization" className="sem-input" style={{ paddingLeft: 36 }} value={organization} onChange={(e) => setOrganization(e.target.value)} placeholder="Residence / Building" />
               </div>
             </div>
@@ -129,7 +138,7 @@ export default function RegisterPage() {
             <div>
               <label htmlFor="regPassword" style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Password</label>
               <div style={{ position: 'relative' }}>
-                <Lock size={16} color="#4054B2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                <Lock size={16} color="var(--sem-secondary)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                 <input id="regPassword" type={showPassword ? 'text' : 'password'} className="sem-input" style={{ paddingLeft: 36, paddingRight: 40 }} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Minimum 8 characters" />
                 <button type="button" onClick={() => setShowPassword((s) => !s)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--sem-muted)', cursor: 'pointer' }}>
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
@@ -140,7 +149,7 @@ export default function RegisterPage() {
             <div>
               <label htmlFor="confirmPassword" style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 5 }}>Confirm Password</label>
               <div style={{ position: 'relative' }}>
-                <Lock size={16} color="#4054B2" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                <Lock size={16} color="var(--sem-secondary)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                 <input id="confirmPassword" type={showPassword ? 'text' : 'password'} className="sem-input" style={{ paddingLeft: 36 }} required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter password" />
               </div>
             </div>

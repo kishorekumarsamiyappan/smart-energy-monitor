@@ -234,27 +234,26 @@ test('End-to-End Backend API: Auth, Multi-Device Ownership, Telemetry, Manual Re
   assert.equal(adminStatus.status, 200);
   assert.equal(adminStatus.body.counts.devices, 1);
 
-  // 8. Relays (Confirmed CH1 + Add CH2 + Offline Schedule) & LED IO Config
+  // 8. Optional Relays (0 by default -> Add CH1 on safe GPIO 15 + Offline Schedule) & LED IO Config
   const relaysRes = await request(app)
     .get('/api/devices/DEVICE001/relays')
     .set('Authorization', `Bearer ${tokenA}`);
   assert.equal(relaysRes.status, 200);
-  assert.equal(relaysRes.body.relays.length, 1);
-  assert.equal(relaysRes.body.relays[0].isConfirmedDefault, true);
+  assert.equal(relaysRes.body.relays.length, 0);
 
-  // Reserved SPI GPIO 11 must be rejected
+  // Reserved Voltage/Current ADC GPIO 4 & 5 must be rejected
   const badGpio = await request(app)
     .post('/api/devices/DEVICE001/relays')
     .set('Authorization', `Bearer ${tokenA}`)
-    .send({ name: 'Bad Pin', gpioPin: 11 });
+    .send({ name: 'Bad Pin', gpioPin: 4 });
   assert.equal(badGpio.status, 400);
 
   const addRelay = await request(app)
     .post('/api/devices/DEVICE001/relays')
     .set('Authorization', `Bearer ${tokenA}`)
-    .send({ name: 'Garden Pump Relay', gpioPin: 5, activeHigh: true, failSafeState: false });
+    .send({ name: 'Garden Pump Relay', gpioPin: 15, activeHigh: true, failSafeState: false });
   assert.equal(addRelay.status, 201);
-  assert.equal(addRelay.body.relay.channelIndex, 2);
+  assert.equal(addRelay.body.relay.channelIndex, 1);
 
   const addSched = await request(app)
     .post(`/api/devices/DEVICE001/relays/${addRelay.body.relay.id}/schedules`)

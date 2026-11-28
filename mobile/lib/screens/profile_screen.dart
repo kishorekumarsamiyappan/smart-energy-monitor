@@ -44,10 +44,10 @@ class ProfileScreen extends StatelessWidget {
                   _InfoRow(Icons.mail_outline, user?.email ?? '-'),
                   _InfoRow(Icons.phone_outlined, user?.mobileNumber ?? '-'),
                   const SizedBox(height: 14),
-                  const Center(
+                  Center(
                     child: Text(
                       'App : ${AppConstants.appVersion}',
-                      style: TextStyle(color: SemColors.primary, fontWeight: FontWeight.w700),
+                      style: TextStyle(color: SemColors.accentPrimary(context), fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],
@@ -151,7 +151,7 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: SemColors.secondary),
+          Icon(icon, size: 18, color: SemColors.accentSecondary(context)),
           const SizedBox(width: 10),
           Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
         ],
@@ -185,10 +185,10 @@ class _LavenderPillAction extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           child: Row(
             children: [
-              Icon(icon, color: SemColors.secondary),
+              Icon(icon, color: SemColors.accentSecondary(context)),
               const SizedBox(width: 12),
               Expanded(child: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600))),
-              const Icon(Icons.chevron_right_rounded, color: SemColors.primary),
+              Icon(Icons.chevron_right_rounded, color: SemColors.accentPrimary(context)),
             ],
           ),
         ),
