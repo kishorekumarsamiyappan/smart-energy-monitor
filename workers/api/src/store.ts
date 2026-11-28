@@ -90,6 +90,13 @@ export interface WorkerStore {
   changeUserPassword(userId: string, currentPassword: string, newPassword: string): Promise<void>;
   createResetToken(email: string): Promise<string | null>;
   consumeResetToken(token: string, newPassword: string): Promise<void>;
+  upsertGoogleUser(input: {
+    email: string;
+    fullName: string;
+    avatarUrl?: string | null;
+    authUid?: string | null;
+  }): Promise<UserProfile>;
+  markEmailVerified(email: string): Promise<UserProfile | null>;
 
   // Devices & Config
   listDevices(userId: string, role: UserRole): Promise<Device[]>;
@@ -360,11 +367,12 @@ export class SupabaseStore implements WorkerStore {
   }
 
   private mapUser(r: Record<string, unknown>): UserProfile {
+    const rawMobile = r.mobile_number ? String(r.mobile_number) : '';
     return {
       id: String(r.id),
       fullName: String(r.full_name),
       email: String(r.email),
-      mobileNumber: String(r.mobile_number),
+      mobileNumber: rawMobile.startsWith('g_') ? '' : rawMobile,
       role: r.role as UserRole,
       organization: r.organization ? String(r.organization) : null,
       avatarUrl: r.avatar_url ? String(r.avatar_url) : null,
@@ -488,6 +496,71 @@ export class SupabaseStore implements WorkerStore {
       method: 'PATCH',
       body: JSON.stringify({ password_hash: await hashPassword(newPassword) }),
     });
+  }
+
+  async upsertGoogleUser(input: {
+    email: string;
+    fullName: string;
+    avatarUrl?: string | null;
+    authUid?: string | null;
+  }): Promise<UserProfile> {
+    const emailNorm = input.email.trim().toLowerCase();
+    const existing = await this.rest<Array<Record<string, unknown>>>(
+      `users?email=eq.${encodeURIComponent(emailNorm)}&select=*&limit=1`,
+    );
+    if (existing[0]) {
+      const patch: Record<string, unknown> = {};
+      if (input.fullName.trim().length > 0) patch.full_name = input.fullName.trim();
+      if (input.avatarUrl) patch.avatar_url = input.avatarUrl;
+      if (input.authUid && !existing[0].auth_uid) patch.auth_uid = input.authUid;
+      if (Object.keys(patch).length > 0) {
+        const updated = await this.rest<Array<Record<string, unknown>>>(
+          `users?id=eq.${encodeURIComponent(String(existing[0].id))}`,
+          { method: 'PATCH', body: JSON.stringify(patch) },
+        );
+        if (updated[0]) return this.mapUser(updated[0]);
+      }
+      return this.mapUser(existing[0]);
+    }
+
+    const basePayload = {
+      auth_uid: input.authUid ?? null,
+      full_name: input.fullName.trim() || emailNorm.split('@')[0],
+      email: emailNorm,
+      avatar_url: input.avatarUrl ?? null,
+      role: 'user',
+      email_verified: false,
+    };
+
+    try {
+      const created = await this.rest<Array<Record<string, unknown>>>('users', {
+        method: 'POST',
+        body: JSON.stringify({ ...basePayload, mobile_number: null }),
+      });
+      return this.mapUser(created[0]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('mobile_number') || msg.includes('23502') || msg.includes('null value')) {
+        const created = await this.rest<Array<Record<string, unknown>>>('users', {
+          method: 'POST',
+          body: JSON.stringify({
+            ...basePayload,
+            mobile_number: `g_${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`,
+          }),
+        });
+        return this.mapUser(created[0]);
+      }
+      throw err;
+    }
+  }
+
+  async markEmailVerified(email: string): Promise<UserProfile | null> {
+    const emailNorm = email.trim().toLowerCase();
+    const rows = await this.rest<Array<Record<string, unknown>>>(
+      `users?email=eq.${encodeURIComponent(emailNorm)}`,
+      { method: 'PATCH', body: JSON.stringify({ email_verified: true }) },
+    );
+    return rows[0] ? this.mapUser(rows[0]) : null;
   }
 
   private mapInternalDevice(d: Record<string, unknown>, st?: Record<string, unknown>): InternalDevice {
@@ -1905,6 +1978,49 @@ export class MemoryWorkerStore implements WorkerStore {
     if (!rec || rec.expiresAt < Date.now()) throw new WorkerHttpError(400, 'Invalid reset token', 'INVALID_RESET_TOKEN');
     const u = this.users.find((x) => x.id === rec.userId)!;
     u.passwordHash = await hashPassword(newPassword);
+  }
+
+  async upsertGoogleUser(input: {
+    email: string;
+    fullName: string;
+    avatarUrl?: string | null;
+    authUid?: string | null;
+  }): Promise<UserProfile> {
+    const emailNorm = input.email.trim().toLowerCase();
+    const found = this.users.find((x) => x.email === emailNorm);
+    const now = new Date().toISOString();
+    if (found) {
+      if (input.fullName.trim().length > 0) found.fullName = input.fullName.trim();
+      if (input.avatarUrl) found.avatarUrl = input.avatarUrl;
+      found.updatedAt = now;
+      const { passwordHash: _p, ...pub } = found;
+      return pub;
+    }
+    const rec = {
+      id: crypto.randomUUID(),
+      fullName: input.fullName.trim() || emailNorm.split('@')[0],
+      email: emailNorm,
+      mobileNumber: '',
+      role: 'user' as UserRole,
+      organization: null,
+      avatarUrl: input.avatarUrl ?? null,
+      themePreference: 'light' as const,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+      passwordHash: '',
+    };
+    this.users.push(rec);
+    const { passwordHash: _p, ...pub } = rec;
+    return pub;
+  }
+
+  async markEmailVerified(email: string): Promise<UserProfile | null> {
+    const found = this.users.find((x) => x.email === email.trim().toLowerCase());
+    if (!found) return null;
+    found.updatedAt = new Date().toISOString();
+    const { passwordHash: _p, ...pub } = found;
+    return pub;
   }
 
   async listDevices(userId: string, role: UserRole) {

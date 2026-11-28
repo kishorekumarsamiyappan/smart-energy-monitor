@@ -20,7 +20,7 @@ import {
 import { Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { z, ZodError } from 'zod';
-import { signJwt, timingSafeEqualStr, verifyJwt } from './crypto';
+import { sha256Hex, signJwt, timingSafeEqualStr, verifyJwt } from './crypto';
 import { parseEmqxWebhookBody, publishToEmqxRestApi } from './emqx';
 import { buildLightweightPdf } from './pdf';
 import { WorkerHttpError, WorkerStore } from './store';
@@ -221,13 +221,84 @@ export function createWorkerApp(getStore: (env: WorkerEnv) => WorkerStore) {
     await next();
   };
 
+  const isAllowedRedirectTarget = (raw: string | undefined | null): string | null => {
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    if (trimmed === 'sem://auth-callback' || trimmed.startsWith('sem://auth-callback?')) {
+      return trimmed;
+    }
+    try {
+      const u = new URL(trimmed);
+      const isLocal = u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1');
+      const isHttps = u.protocol === 'https:';
+      if ((isHttps || isLocal) && u.pathname === '/auth/callback') {
+        return u.toString();
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
+  const issueEmailOtpChallenge = async (env: WorkerEnv, email: string, fullName?: string) => {
+    const emailNorm = email.trim().toLowerCase();
+    const rnd = new Uint32Array(1);
+    crypto.getRandomValues(rnd);
+    const code = String(100000 + (rnd[0] % 900000));
+    const nonce = crypto.randomUUID().replaceAll('-', '').slice(0, 16);
+    const otpHash = await sha256Hex(`${emailNorm}:${code}:${nonce}`);
+    const otpToken = await signJwt(
+      { purpose: 'email_otp', email: emailNorm, nonce, otpHash },
+      env.JWT_SECRET,
+      600,
+    );
+
+    let deliveryMethod: 'email' | 'preview' = 'preview';
+    if (env.RESEND_API_KEY) {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: env.OTP_FROM_EMAIL || 'SEM Smart Energy Monitor <onboarding@resend.dev>',
+          to: [emailNorm],
+          subject: 'Your SEM Verification Code (OTP)',
+          html: `<div style="font-family:sans-serif;max-width:460px;margin:auto;padding:24px;border:1px solid #e2e6f0;border-radius:12px;">
+            <h2 style="color:#29378F;margin-top:0;">SEM — Verification Code</h2>
+            <p>Hi ${fullName || 'there'},</p>
+            <p>Use this 6-digit OTP to verify your sign-in:</p>
+            <div style="font-size:28px;font-weight:800;letter-spacing:6px;color:#29378F;background:#E9EAF8;padding:12px 18px;border-radius:10px;text-align:center;">${code}</div>
+            <p style="font-size:12px;color:#5c6773;margin-top:16px;">Expires in 10 minutes. Ignore if you did not request this login.</p>
+          </div>`,
+        }),
+      });
+      if (res.ok) {
+        deliveryMethod = 'email';
+      }
+    }
+
+    return {
+      otpToken,
+      expiresInSec: 600,
+      deliveryMethod,
+      message:
+        deliveryMethod === 'email'
+          ? `Verification OTP sent to ${emailNorm}.`
+          : `OTP generated for ${emailNorm} (SMTP/Resend not configured yet; use preview code).`,
+      ...(deliveryMethod === 'preview' ? { previewOtp: code } : {}),
+    };
+  };
+
   // --- Auth Routes ---
   app.post('/api/auth/register', async (c) => {
     const store = getStore(c.env);
     const parsed = registerSchema.parse(await c.req.json());
     const user = await store.registerUser(parsed);
+    const otp = await issueEmailOtpChallenge(c.env, user.email, user.fullName);
     const token = await signJwt({ sub: user.id, email: user.email, role: user.role, jti: crypto.randomUUID() }, c.env.JWT_SECRET);
-    return c.json({ user, token, verificationRequired: false, message: 'Account created successfully.' }, 201);
+    return c.json({ user, token, verificationRequired: false, otp, message: 'Account created successfully.' }, 201);
   });
 
   app.post('/api/auth/login', async (c) => {
@@ -236,6 +307,211 @@ export function createWorkerApp(getStore: (env: WorkerEnv) => WorkerStore) {
     const user = await store.verifyUserLogin(parsed.identifier, parsed.password);
     const token = await signJwt({ sub: user.id, email: user.email, role: user.role, jti: crypto.randomUUID() }, c.env.JWT_SECRET);
     return c.json({ user, token });
+  });
+
+  app.get('/api/auth/google/start', async (c) => {
+    const reqUrl = new URL(c.req.url);
+    const target = isAllowedRedirectTarget(c.req.query('redirect_to')) ?? 'sem://auth-callback';
+    const modeJson = c.req.query('mode') === 'json';
+    const supaUrl = (c.env.SUPABASE_URL ?? '').trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/$/, '');
+    const bridgeCallback = `${reqUrl.origin}/api/auth/google/callback?target=${encodeURIComponent(target)}`;
+
+    if (supaUrl && c.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const settingsRes = await fetch(`${supaUrl}/auth/v1/settings`, {
+          headers: { apikey: c.env.SUPABASE_SERVICE_ROLE_KEY },
+        });
+        if (settingsRes.ok) {
+          const settings = (await settingsRes.json()) as { external?: Record<string, boolean> };
+          if (settings.external?.google) {
+            const authorizeUrl = `${supaUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(bridgeCallback)}`;
+            if (modeJson) return c.json({ configured: true, authorizeUrl, callbackUrl: bridgeCallback });
+            return c.redirect(authorizeUrl, 302);
+          }
+        }
+      } catch {
+        // Fall through to configuration error handling below
+      }
+    }
+
+    if (modeJson) {
+      return c.json(
+        {
+          configured: false,
+          googleClientId: c.env.GOOGLE_CLIENT_ID ?? null,
+          callbackUrl: `${reqUrl.origin}/api/auth/google/callback`,
+          message:
+            'Google OAuth is not enabled in Supabase Auth yet. Enable Google provider in Supabase Dashboard -> Authentication -> Providers.',
+        },
+        400,
+      );
+    }
+    const sep = target.includes('#') ? '&' : '#';
+    return c.redirect(`${target}${sep}error=google_not_configured`, 302);
+  });
+
+  app.get('/api/auth/google/callback', (c) => {
+    const rawTarget = isAllowedRedirectTarget(c.req.query('target')) ?? 'sem://auth-callback';
+    const html = `<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SEM Sign-In</title></head>
+<body style="font-family:system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;background:#0F1424;color:#ECEFF4;text-align:center;padding:24px;">
+<div>
+  <h2 style="margin:0 0 8px;">Completing Google Sign-In...</h2>
+  <p style="opacity:0.8;font-size:14px;">Returning you to Smart Energy Monitor...</p>
+</div>
+<script>
+(function(){
+  var target = ${JSON.stringify(rawTarget)};
+  var hash = window.location.hash || '';
+  var q = new URLSearchParams(window.location.search);
+  var err = q.get('error') || q.get('error_description');
+  if (!hash && err) {
+    hash = '#error=' + encodeURIComponent(err);
+  }
+  window.location.replace(target + hash);
+})();
+</script></body></html>`;
+    return c.html(html);
+  });
+
+  app.post('/api/auth/google', async (c) => {
+    const store = getStore(c.env);
+    const body = z
+      .object({
+        supabaseAccessToken: z.string().min(10).optional(),
+        googleIdToken: z.string().min(10).optional(),
+        googleAccessToken: z.string().min(10).optional(),
+      })
+      .refine((v) => Boolean(v.supabaseAccessToken || v.googleIdToken || v.googleAccessToken), {
+        message: 'A verified Google or Supabase OAuth token is required.',
+      })
+      .parse(await c.req.json());
+
+    let email = '';
+    let fullName = '';
+    let avatarUrl: string | null = null;
+    let authUid: string | null = null;
+
+    if (body.supabaseAccessToken) {
+      const supaUrl = (c.env.SUPABASE_URL ?? '').trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/$/, '');
+      const uRes = await fetch(`${supaUrl}/auth/v1/user`, {
+        headers: {
+          Authorization: `Bearer ${body.supabaseAccessToken}`,
+          apikey: c.env.SUPABASE_SERVICE_ROLE_KEY,
+        },
+      });
+      if (!uRes.ok) {
+        return c.json({ error: 'Invalid or expired Supabase Google OAuth token.', code: 'INVALID_OAUTH_TOKEN' }, 401);
+      }
+      const uData = (await uRes.json()) as {
+        id?: string;
+        email?: string;
+        user_metadata?: { full_name?: string; name?: string; avatar_url?: string; picture?: string };
+      };
+      email = uData.email ?? '';
+      fullName = uData.user_metadata?.full_name || uData.user_metadata?.name || '';
+      avatarUrl = uData.user_metadata?.avatar_url || uData.user_metadata?.picture || null;
+      authUid = uData.id ?? null;
+    } else if (body.googleIdToken) {
+      const infoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(body.googleIdToken)}`);
+      if (!infoRes.ok) {
+        return c.json({ error: 'Invalid Google ID token.', code: 'INVALID_OAUTH_TOKEN' }, 401);
+      }
+      const info = (await infoRes.json()) as {
+        email?: string;
+        email_verified?: string | boolean;
+        name?: string;
+        picture?: string;
+        sub?: string;
+        aud?: string;
+      };
+      if (c.env.GOOGLE_CLIENT_ID && info.aud !== c.env.GOOGLE_CLIENT_ID) {
+        return c.json({ error: 'Google token audience mismatch.', code: 'INVALID_OAUTH_AUDIENCE' }, 401);
+      }
+      if (info.email_verified !== true && info.email_verified !== 'true') {
+        return c.json({ error: 'Google account email is not verified.', code: 'UNVERIFIED_EMAIL' }, 403);
+      }
+      email = info.email ?? '';
+      fullName = info.name ?? '';
+      avatarUrl = info.picture ?? null;
+      authUid = info.sub ?? null;
+    } else if (body.googleAccessToken) {
+      const uiRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${body.googleAccessToken}` },
+      });
+      if (!uiRes.ok) {
+        return c.json({ error: 'Invalid Google access token.', code: 'INVALID_OAUTH_TOKEN' }, 401);
+      }
+      const info = (await uiRes.json()) as {
+        email?: string;
+        email_verified?: boolean;
+        name?: string;
+        picture?: string;
+        sub?: string;
+      };
+      if (!info.email_verified) {
+        return c.json({ error: 'Google account email is not verified.', code: 'UNVERIFIED_EMAIL' }, 403);
+      }
+      email = info.email ?? '';
+      fullName = info.name ?? '';
+      avatarUrl = info.picture ?? null;
+      authUid = info.sub ?? null;
+    }
+
+    if (!email) {
+      return c.json({ error: 'Google account did not return an email address.', code: 'MISSING_EMAIL' }, 400);
+    }
+
+    const user = await store.upsertGoogleUser({
+      email,
+      fullName: fullName || email.split('@')[0],
+      avatarUrl,
+      authUid,
+    });
+    const otp = await issueEmailOtpChallenge(c.env, user.email, user.fullName);
+    return c.json({ user, otpRequired: true, ...otp });
+  });
+
+  app.post('/api/auth/otp/send', async (c) => {
+    const body = z
+      .object({
+        email: z.string().trim().email(),
+        fullName: z.string().trim().max(120).optional(),
+      })
+      .parse(await c.req.json());
+    const challenge = await issueEmailOtpChallenge(c.env, body.email, body.fullName);
+    return c.json(challenge);
+  });
+
+  app.post('/api/auth/otp/verify', async (c) => {
+    const body = z
+      .object({
+        email: z.string().trim().email(),
+        code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit verification OTP'),
+        otpToken: z.string().min(10),
+      })
+      .parse(await c.req.json());
+
+    const emailNorm = body.email.toLowerCase();
+    const decoded = await verifyJwt<{ purpose?: string; email?: string; nonce?: string; otpHash?: string }>(
+      body.otpToken,
+      c.env.JWT_SECRET,
+    );
+    if (!decoded || decoded.purpose !== 'email_otp' || decoded.email !== emailNorm || !decoded.nonce || !decoded.otpHash) {
+      return c.json({ error: 'OTP expired or invalid. Please request a new code.', code: 'INVALID_OTP_TOKEN' }, 400);
+    }
+
+    const candidateHash = await sha256Hex(`${emailNorm}:${body.code}:${decoded.nonce}`);
+    if (!timingSafeEqualStr(candidateHash, decoded.otpHash)) {
+      return c.json({ error: 'Incorrect 6-digit OTP code.', code: 'INVALID_OTP_CODE' }, 401);
+    }
+
+    const user = await getStore(c.env).markEmailVerified(emailNorm);
+    if (!user) {
+      return c.json({ error: 'No account found for this email address.', code: 'USER_NOT_FOUND' }, 404);
+    }
+    const token = await signJwt({ sub: user.id, email: user.email, role: user.role, jti: crypto.randomUUID() }, c.env.JWT_SECRET);
+    return c.json({ user, token, verified: true });
   });
 
   app.post('/api/auth/logout', requireAuth, async (c) => {

@@ -381,3 +381,90 @@ test('SupabaseStore normalizes /rest/v1/ suffix and omits Bearer header for mode
     globalThis.fetch = origFetch;
   }
 });
+
+test('Google OAuth token verification captures profile picture, name, email and enforces 6-digit OTP verification', async () => {
+  const store = new MemoryWorkerStore();
+  const app = createWorkerApp(() => store);
+  const origFetch = globalThis.fetch;
+
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes('oauth2.googleapis.com/tokeninfo')) {
+      return new Response(
+        JSON.stringify({
+          email: 'google.user@example.com',
+          email_verified: 'true',
+          name: 'Kishore Google',
+          picture: 'https://lh3.googleusercontent.com/a/sem-avatar-demo',
+          sub: 'google-sub-12345',
+        }),
+        { status: 200 },
+      );
+    }
+    return new Response('{}', { status: 404 });
+  }) as typeof fetch;
+
+  try {
+    const gRes = await app.request(
+      '/api/auth/google',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ googleIdToken: 'mock-valid-google-id-token-123456' }),
+      },
+      TEST_ENV,
+    );
+    assert.equal(gRes.status, 200);
+    const gJson = (await gRes.json()) as {
+      otpRequired: boolean;
+      otpToken: string;
+      previewOtp: string;
+      user: { fullName: string; email: string; avatarUrl: string };
+    };
+    assert.equal(gJson.otpRequired, true);
+    assert.equal(gJson.user.fullName, 'Kishore Google');
+    assert.equal(gJson.user.email, 'google.user@example.com');
+    assert.equal(gJson.user.avatarUrl, 'https://lh3.googleusercontent.com/a/sem-avatar-demo');
+    assert.match(gJson.previewOtp, /^\d{6}$/);
+
+    // Wrong OTP must fail
+    const badOtp = await app.request(
+      '/api/auth/otp/verify',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: gJson.user.email, code: '000000', otpToken: gJson.otpToken }),
+      },
+      TEST_ENV,
+    );
+    if (gJson.previewOtp !== '000000') {
+      assert.equal(badOtp.status, 401);
+    }
+
+    // Valid OTP issues JWT session preserving Google avatar, name & email
+    const okOtp = await app.request(
+      '/api/auth/otp/verify',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: gJson.user.email, code: gJson.previewOtp, otpToken: gJson.otpToken }),
+      },
+      TEST_ENV,
+    );
+    assert.equal(okOtp.status, 200);
+    const okJson = (await okOtp.json()) as { token: string; user: { avatarUrl: string; email: string } };
+    assert.ok(okJson.token.length > 20);
+    assert.equal(okJson.user.avatarUrl, 'https://lh3.googleusercontent.com/a/sem-avatar-demo');
+
+    const cbRes = await app.request(
+      '/api/auth/google/callback?target=' + encodeURIComponent('https://evil.attacker.example/steal'),
+      { method: 'GET' },
+      TEST_ENV,
+    );
+    assert.equal(cbRes.status, 200);
+    const cbHtml = await cbRes.text();
+    assert.ok(!cbHtml.includes('evil.attacker.example'));
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});

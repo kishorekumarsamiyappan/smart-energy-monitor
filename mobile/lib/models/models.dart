@@ -5,6 +5,7 @@ class UserProfile {
   final String mobileNumber;
   final String role;
   final String? organization;
+  final String? avatarUrl;
 
   const UserProfile({
     required this.id,
@@ -13,6 +14,7 @@ class UserProfile {
     required this.mobileNumber,
     required this.role,
     this.organization,
+    this.avatarUrl,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
@@ -22,9 +24,10 @@ class UserProfile {
         mobileNumber: json['mobileNumber']?.toString() ?? '',
         role: json['role']?.toString() ?? 'user',
         organization: json['organization']?.toString(),
+        avatarUrl: json['avatarUrl']?.toString(),
       );
 
-  UserProfile copyWith({String? fullName, String? mobileNumber, String? organization}) {
+  UserProfile copyWith({String? fullName, String? mobileNumber, String? organization, String? avatarUrl}) {
     return UserProfile(
       id: id,
       fullName: fullName ?? this.fullName,
@@ -32,6 +35,7 @@ class UserProfile {
       mobileNumber: mobileNumber ?? this.mobileNumber,
       role: role,
       organization: organization ?? this.organization,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
 }

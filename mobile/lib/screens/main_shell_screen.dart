@@ -41,9 +41,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
               MaterialPageRoute(builder: (_) => const AddDeviceScreen()),
             ),
           ),
-      5 => const ProfileScreen(),
       _ => const SizedBox.shrink(),
     };
+
+    final avatarUrl = state.user?.avatarUrl;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: _tabIndex == 1
@@ -76,8 +78,32 @@ class _MainShellScreenState extends State<MainShellScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.person_outline_rounded),
-                  onPressed: () => setState(() => _tabIndex = 5),
+                  tooltip: 'Profile',
+                  icon: (avatarUrl != null && avatarUrl.isNotEmpty)
+                      ? Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: SemColors.warning, width: 1.5),
+                          ),
+                          child: ClipOval(
+                            child: Image.network(
+                              avatarUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => const Icon(Icons.person_outline_rounded, size: 20),
+                            ),
+                          ),
+                        )
+                      : const Icon(Icons.person_outline_rounded),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => Scaffold(
+                        appBar: AppBar(title: const Text('Profile')),
+                        body: const ProfileScreen(),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -119,17 +145,52 @@ class _MainShellScreenState extends State<MainShellScreen> {
               ),
             )
           : null,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tabIndex,
-        onDestinationSelected: (i) => setState(() => _tabIndex = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Dashboard'),
-          NavigationDestination(icon: Icon(Icons.monitor_heart_outlined), label: 'Monitor'),
-          NavigationDestination(icon: Icon(Icons.show_chart_rounded), label: 'History'),
-          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Billing'),
-          NavigationDestination(icon: Icon(Icons.memory_rounded), label: 'Devices'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: isDark ? SemColors.dividerDark : SemColors.borderLight,
+              width: 1,
+            ),
+          ),
+        ),
+        child: NavigationBar(
+          height: 66,
+          backgroundColor: isDark ? SemColors.surfaceDark : SemColors.backgroundLight,
+          indicatorColor: isDark
+              ? SemColors.primaryDark.withValues(alpha: 0.22)
+              : SemColors.primary.withValues(alpha: 0.14),
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          selectedIndex: _tabIndex.clamp(0, 4),
+          onDestinationSelected: (i) => setState(() => _tabIndex = i),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard_rounded),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.monitor_heart_outlined),
+              selectedIcon: Icon(Icons.monitor_heart_rounded),
+              label: 'Monitor',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.show_chart_rounded),
+              selectedIcon: Icon(Icons.auto_graph_rounded),
+              label: 'History',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.receipt_long_outlined),
+              selectedIcon: Icon(Icons.receipt_long_rounded),
+              label: 'Billing',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.memory_outlined),
+              selectedIcon: Icon(Icons.memory_rounded),
+              label: 'Devices',
+            ),
+          ],
+        ),
       ),
     );
   }

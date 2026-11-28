@@ -42,7 +42,10 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 14),
                   _InfoRow(Icons.business_outlined, user?.organization ?? 'Smart Energy Residence'),
                   _InfoRow(Icons.mail_outline, user?.email ?? '-'),
-                  _InfoRow(Icons.phone_outlined, user?.mobileNumber ?? '-'),
+                  _InfoRow(
+                    Icons.phone_outlined,
+                    (user?.mobileNumber.trim().isNotEmpty ?? false) ? user!.mobileNumber : 'Not set',
+                  ),
                   const SizedBox(height: 14),
                   Center(
                     child: Text(
@@ -64,7 +67,17 @@ class ProfileScreen extends StatelessWidget {
                   gradient: const LinearGradient(colors: [SemColors.secondary, SemColors.primary]),
                   border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 4),
                 ),
-                child: const Icon(Icons.person_rounded, color: Colors.white, size: 42),
+                child: ClipOval(
+                  child: (user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty)
+                      ? Image.network(
+                          user.avatarUrl!,
+                          fit: BoxFit.cover,
+                          width: 78,
+                          height: 78,
+                          errorBuilder: (_, _, _) => const Icon(Icons.person_rounded, color: Colors.white, size: 42),
+                        )
+                      : const Icon(Icons.person_rounded, color: Colors.white, size: 42),
+                ),
               ),
             ),
           ],

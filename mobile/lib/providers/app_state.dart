@@ -237,6 +237,44 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<Map<String, dynamic>> exchangeGoogleToken({
+    String? supabaseAccessToken,
+    String? googleIdToken,
+  }) async {
+    return _api.request('POST', '/auth/google', body: {
+      'supabaseAccessToken': ?supabaseAccessToken,
+      'googleIdToken': ?googleIdToken,
+    });
+  }
+
+  Future<Map<String, dynamic>> sendEmailOtp(String email) async {
+    return _api.request('POST', '/auth/otp/send', body: {'email': email.trim()});
+  }
+
+  Future<void> verifyEmailOtp({
+    required String email,
+    required String code,
+    required String otpToken,
+  }) async {
+    final res = await _api.request('POST', '/auth/otp/verify', body: {
+      'email': email.trim(),
+      'code': code.trim(),
+      'otpToken': otpToken,
+    });
+    _isDemoMode = false;
+    _token = res['token']?.toString();
+    _user = UserProfile.fromJson(res['user'] as Map<String, dynamic>);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sem_demo_mode', false);
+    if (_token != null) await prefs.setString('sem_token', _token!);
+    await prefs.setString('sem_user', jsonEncode(res['user']));
+
+    await refreshProductionData();
+    _startLivePolling();
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     _stopLivePolling();
     if (_token != null && !_isDemoMode) {

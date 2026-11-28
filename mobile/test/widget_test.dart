@@ -59,6 +59,8 @@ void main() {
     );
 
     expect(find.text('Welcome Back'), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Sign in with OTP'), findsOneWidget);
     expect(find.text('Try Interactive Demo Mode'), findsOneWidget);
 
     await tester.tap(find.text('Try Interactive Demo Mode'));

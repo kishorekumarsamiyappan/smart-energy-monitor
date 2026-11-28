@@ -175,9 +175,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               justifyContent: 'center',
               fontWeight: 800,
               fontSize: 14,
+              overflow: 'hidden',
+              border: user?.avatarUrl ? '2px solid #F58220' : 'none',
             }}
           >
-            {user?.fullName ? user.fullName.charAt(0).toUpperCase() : <User size={18} />}
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.fullName || 'Profile'}
+                referrerPolicy="no-referrer"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : user?.fullName ? (
+              user.fullName.charAt(0).toUpperCase()
+            ) : (
+              <User size={18} />
+            )}
           </Link>
         </div>
       </header>
@@ -264,7 +277,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* Simple Mobile Bottom Navigation */}
+      {/* Suitable 5-Tab Mobile Bottom Navigation (Profile/Alerts/Admin live in header & sidebar) */}
       <nav className="sem-bottom-nav" aria-label="Mobile Navigation">
         {[
           { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
@@ -272,8 +285,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           { href: '/history', label: 'History', icon: History },
           { href: '/billing', label: 'Billing', icon: Receipt },
           { href: '/devices', label: 'Devices', icon: Cpu },
-          { href: '/profile', label: 'Profile', icon: User },
-          ...(user?.role === 'admin' ? [{ href: '/admin', label: 'Admin', icon: ShieldAlert }] : []),
         ].map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -281,18 +292,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 3,
-                fontSize: 11,
-                fontWeight: active ? 700 : 500,
-                color: active ? 'var(--sem-primary)' : 'var(--sem-muted)',
-                padding: '6px 8px',
-              }}
+              className={active ? 'sem-bottom-link is-active' : 'sem-bottom-link'}
             >
-              <Icon size={20} strokeWidth={active ? 2.4 : 1.9} />
+              <span className="sem-bottom-pill">
+                <Icon size={19} strokeWidth={active ? 2.4 : 1.9} />
+              </span>
               <span>{item.label}</span>
             </Link>
           );

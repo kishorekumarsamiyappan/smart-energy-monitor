@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { DEMO_USER, UserProfile } from '@sem/shared';
-import { apiRequest } from './api-client';
+import { apiRequest, getApiBaseUrl } from './api-client';
 import { safeStorageGet, safeStorageRemove, safeStorageSet } from './storage';
 import { getSupabaseBrowserClient, isSupabaseConfigured } from './supabase';
 
@@ -25,6 +25,13 @@ interface AuthState {
   enterDemoMode: () => void;
   exitDemoMode: () => void;
   updateProfileLocal: (patch: Partial<UserProfile>) => void;
+  startGoogleAuth: () => void;
+  exchangeGoogleToken: (payload: {
+    supabaseAccessToken?: string;
+    googleIdToken?: string;
+  }) => Promise<{ user: UserProfile; otpToken: string; message: string; previewOtp?: string }>;
+  sendEmailOtp: (email: string) => Promise<{ otpToken: string; message: string; previewOtp?: string }>;
+  verifyEmailOtp: (email: string, code: string, otpToken: string) => Promise<UserProfile>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -86,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user: UserProfile;
       token?: string;
       verificationRequired?: boolean;
+      otp?: { otpToken: string; message: string; previewOtp?: string };
       message?: string;
     }>('/auth/register', {
       method: 'POST',
@@ -104,6 +112,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       verificationRequired: Boolean(res.verificationRequired),
       message: res.message || 'Account created successfully.',
     };
+  };
+
+  const startGoogleAuth = () => {
+    if (typeof window === 'undefined') return;
+    const redirectTo = `${window.location.origin}/auth/callback`;
+    window.location.assign(`${getApiBaseUrl()}/auth/google/start?redirect_to=${encodeURIComponent(redirectTo)}`);
+  };
+
+  const exchangeGoogleToken = async (payload: { supabaseAccessToken?: string; googleIdToken?: string }) => {
+    return apiRequest<{ user: UserProfile; otpToken: string; message: string; previewOtp?: string }>('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  };
+
+  const sendEmailOtp = async (email: string) => {
+    return apiRequest<{ otpToken: string; message: string; previewOtp?: string }>('/auth/otp/send', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  };
+
+  const verifyEmailOtp = async (email: string, code: string, otpToken: string): Promise<UserProfile> => {
+    const res = await apiRequest<{ user: UserProfile; token: string }>('/auth/otp/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, code, otpToken }),
+    });
+    safeStorageRemove('sem_demo_mode');
+    safeStorageSet('sem_token', res.token);
+    safeStorageSet('sem_user', JSON.stringify(res.user));
+    setIsDemoMode(false);
+    setToken(res.token);
+    setUser(res.user);
+    return res.user;
   };
 
   const logout = async () => {
@@ -167,6 +209,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         enterDemoMode,
         exitDemoMode,
         updateProfileLocal,
+        startGoogleAuth,
+        exchangeGoogleToken,
+        sendEmailOtp,
+        verifyEmailOtp,
       }}
     >
       {children}

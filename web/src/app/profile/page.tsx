@@ -119,10 +119,20 @@ export default function ProfilePage() {
               alignItems: 'center',
               justifyContent: 'center',
               color: '#FFFFFF',
+              overflow: 'hidden',
               boxShadow: '0 4px 12px rgba(41,55,143,0.2)',
             }}
           >
-            <User size={40} />
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.fullName}
+                referrerPolicy="no-referrer"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <User size={40} />
+            )}
           </div>
 
           <button
@@ -172,7 +182,7 @@ export default function ProfilePage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <Phone size={18} color="var(--sem-secondary)" />
-                  <span>{user?.mobileNumber}</span>
+                  <span>{user?.mobileNumber || 'Not added yet (tap Edit to add)'}</span>
                 </div>
               </div>
 

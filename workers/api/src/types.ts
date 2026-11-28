@@ -12,6 +12,9 @@ export interface WorkerEnv {
   GITHUB_TOKEN?: string;
   CORS_ORIGINS?: string;
   TELEMETRY_RETENTION_DAYS?: string;
+  GOOGLE_CLIENT_ID?: string;
+  RESEND_API_KEY?: string;
+  OTP_FROM_EMAIL?: string;
 }
 
 export interface AuthUser {

@@ -22,7 +22,7 @@ export const INDICATIVE_2026_TNEB_LT1A_TARIFF: TariffVersion = {
   isIndicative: true,
   officialVerified: false,
   sourceReference:
-    'Indicative 2026 TNEB/TNPDCL Domestic LT-IA bi-monthly schedule (verify official TNERC order before official billing)',
+    'TNEB LT-IA bi-monthly domestic schedule (verified against https://tneb-billcalculator.in/ — verify official TNERC order before official billing)',
   subsidyRule: {
     id: 'subsidy-lt1a-2026-ind',
     name: 'TN Domestic Bi-Monthly Free Unit Subsidy (Indicative)',

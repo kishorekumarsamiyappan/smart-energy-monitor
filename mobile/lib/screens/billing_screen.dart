@@ -241,6 +241,11 @@ class _BillingScreenState extends State<BillingScreen> {
                         ],
                       ),
                     ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tariff Reference: tneb-billcalculator.in (LT-IA Bi-Monthly Domestic Slabs)',
+                    style: TextStyle(fontSize: 11.5, color: SemColors.mutedText(context), fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
             ),

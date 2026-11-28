@@ -387,6 +387,18 @@ export default function BillingPage() {
                 <strong>Total Estimated Amount</strong>
                 <strong style={{ color: 'var(--sem-primary)' }}>₹{calcResult.totalEstimatedAmountInr.toFixed(2)}</strong>
               </div>
+              <div style={{ fontSize: 11.5, color: 'var(--sem-muted)', marginTop: 4 }}>
+                Tariff Reference:{' '}
+                <a
+                  href="https://tneb-billcalculator.in/"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: 'var(--sem-secondary)', fontWeight: 600 }}
+                >
+                  tneb-billcalculator.in
+                </a>{' '}
+                (LT-IA Bi-Monthly Domestic Slabs)
+              </div>
             </div>
           ) : null}
         </div>

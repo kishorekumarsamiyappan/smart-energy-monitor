@@ -7,39 +7,41 @@ interface BrandLogoProps {
 
 export function BrandLogo({ variant = 'light', compact = false }: BrandLogoProps) {
   const fg = variant === 'light' ? '#FFFFFF' : 'var(--sem-primary)';
-  const accent = '#F58220';
-  const pulse = '#1B9E4B';
+  const size = compact ? 34 : 40;
 
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
       <svg
-        width="38"
-        height="38"
-        viewBox="0 0 40 40"
+        width={size}
+        height={size}
+        viewBox="0 0 64 64"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
+        style={{
+          borderRadius: compact ? 9 : 11,
+          boxShadow: '0 2px 8px rgba(245, 130, 32, 0.22)',
+          flexShrink: 0,
+        }}
       >
         <defs>
-          <linearGradient id="semShieldGrad" x1="2" y1="2" x2="38" y2="38" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#1B256B" />
+          <linearGradient id="semApkCrestGrad" x1="4" y1="4" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#29378F" />
             <stop offset="100%" stopColor="#4054B2" />
           </linearGradient>
         </defs>
-        <path
-          d="M12 3H28L37 12V28L28 37H12L3 28V12L12 3Z"
-          fill={variant === 'light' ? 'rgba(255,255,255,0.14)' : 'url(#semShieldGrad)'}
-          stroke={fg}
-          strokeWidth="2.2"
+        <rect
+          x="3"
+          y="3"
+          width="58"
+          height="58"
+          rx="16"
+          fill="url(#semApkCrestGrad)"
+          stroke="#F58220"
+          strokeWidth="2.8"
         />
-        <path
-          d="M7 22H13L16 14L20.5 27L24 18L27 22H33"
-          stroke={accent}
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <circle cx="31.5" cy="9.5" r="2.6" fill={pulse} stroke="#FFFFFF" strokeWidth="1" />
+        <circle cx="32" cy="32" r="21.76" stroke="rgba(255,255,255,0.28)" strokeWidth="2.2" />
+        <path d="M35.84 15.36L23.04 33.28H32.64L28.16 48.64L41.6 30.72H31.36Z" fill="#F58220" />
       </svg>
       {!compact && (
         <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.08 }}>

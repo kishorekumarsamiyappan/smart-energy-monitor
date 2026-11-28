@@ -34,6 +34,8 @@ describe('Phase 1 Web Auth, Design System & Demo Mode', () => {
     expect(pwdInput.type).toBe('text');
 
     expect(screen.getByRole('link', { name: /Forgot password/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Continue with Google/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sign in with Email OTP/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Try Interactive Demo Mode/i }));
     expect(window.localStorage.getItem('sem_demo_mode')).toBe('true');
