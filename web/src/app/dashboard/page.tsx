@@ -118,6 +118,10 @@ export default function DashboardPage() {
             const matchingCycle = billingCycles.find(
               (c) => c.deviceId === dev.deviceId && c.status === 'open',
             );
+            const todayIso = new Date().toISOString().slice(0, 10);
+            const cycleStartFallback = new Date(Date.now() - 60 * 86_400_000).toISOString().slice(0, 10);
+            const periodStartDate = matchingCycle?.periodStart ?? (isDemoMode ? '2026-10-01' : cycleStartFallback);
+            const periodEndDate = matchingCycle?.periodEnd ?? (isDemoMode ? '2026-11-25' : todayIso);
             const prevRead = matchingCycle?.previousReading ?? 0;
             const currRead = latest?.energyKwh ?? matchingCycle?.currentReading ?? prevRead;
             const billSummary = calculateTnebBill({
@@ -126,8 +130,8 @@ export default function DashboardPage() {
               consumerEligible: dev.consumerEligibleForSubsidy,
               previousReading: prevRead,
               currentReading: Math.max(prevRead, currRead),
-              previousReadingDate: matchingCycle?.periodStart ?? '2026-10-01',
-              currentReadingDate: matchingCycle?.periodEnd ?? '2026-11-25',
+              previousReadingDate: periodStartDate,
+              currentReadingDate: periodEndDate,
               readingSource: 'automatic_esp32',
               tariffVersion: activeTariff ?? INDICATIVE_2026_TNEB_LT1A_TARIFF,
             });
@@ -308,7 +312,7 @@ export default function DashboardPage() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                     <span style={{ fontWeight: 700, fontSize: 13 }}>
-                      TNEB LT-IA Billing Cycle ({formatKolkataDate(matchingCycle?.periodStart ?? '2026-10-01')} – {formatKolkataDate(matchingCycle?.periodEnd ?? '2026-11-25')})
+                      TNEB LT-IA Billing Cycle ({formatKolkataDate(periodStartDate)} – {formatKolkataDate(periodEndDate)})
                     </span>
                     <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--sem-primary)' }}>
                       ₹{billSummary.totalEstimatedAmountInr.toFixed(2)}
@@ -341,7 +345,7 @@ export default function DashboardPage() {
                     href={`/monitoring?deviceId=${dev.deviceId}`}
                     onClick={() => setSelectedDeviceId(dev.deviceId)}
                     className="sem-btn sem-btn-primary"
-                    style={{ flex: 1, padding: '8px 12px', fontSize: 13 }}
+                    style={{ flex: '1 1 110px', padding: '8px 12px', fontSize: 13, whiteSpace: 'nowrap' }}
                   >
                     <Activity size={15} /> Monitor
                   </Link>
@@ -349,7 +353,7 @@ export default function DashboardPage() {
                     href={`/history?deviceId=${dev.deviceId}`}
                     onClick={() => setSelectedDeviceId(dev.deviceId)}
                     className="sem-btn sem-btn-outline"
-                    style={{ padding: '8px 12px', fontSize: 13 }}
+                    style={{ padding: '8px 12px', fontSize: 13, whiteSpace: 'nowrap' }}
                   >
                     <History size={15} /> History
                   </Link>
@@ -357,7 +361,7 @@ export default function DashboardPage() {
                     href="/billing"
                     onClick={() => setSelectedDeviceId(dev.deviceId)}
                     className="sem-btn sem-btn-outline"
-                    style={{ padding: '8px 12px', fontSize: 13 }}
+                    style={{ padding: '8px 12px', fontSize: 13, whiteSpace: 'nowrap' }}
                   >
                     <Receipt size={15} /> Bill
                   </Link>
@@ -365,7 +369,7 @@ export default function DashboardPage() {
                     href={`/devices/${dev.deviceId}/relays`}
                     onClick={() => setSelectedDeviceId(dev.deviceId)}
                     className="sem-btn sem-btn-outline"
-                    style={{ padding: '8px 12px', fontSize: 13 }}
+                    style={{ padding: '8px 12px', fontSize: 13, whiteSpace: 'nowrap' }}
                   >
                     <ToggleRight size={15} /> Relays
                   </Link>

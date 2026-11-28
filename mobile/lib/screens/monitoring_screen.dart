@@ -18,6 +18,33 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
   int _days = 1;
   bool _showMinMax = true;
   String _pair = 'vi';
+  String? _loadedDeviceId;
+  bool _loadingHistory = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncHistory(force: false));
+  }
+
+  Future<void> _syncHistory({bool force = true}) async {
+    if (!mounted) return;
+    final state = context.read<AppState>();
+    final dev = state.selectedDevice;
+    if (dev == null) return;
+    if (!force && _loadedDeviceId == dev.deviceId && (state.historyByDevice[dev.deviceId]?.isNotEmpty ?? false)) {
+      return;
+    }
+    setState(() => _loadingHistory = true);
+    _loadedDeviceId = dev.deviceId;
+    try {
+      await state.refreshProductionData();
+      await state.loadHistory(dev.deviceId, days: _days);
+    } catch (_) {}
+    if (mounted) {
+      setState(() => _loadingHistory = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +54,10 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
     final pts = dev != null
         ? (state.historyByDevice[dev.deviceId] ?? <TelemetryPointModel>[])
         : <TelemetryPointModel>[];
+
+    if (dev != null && _loadedDeviceId != dev.deviceId && !_loadingHistory) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _syncHistory(force: false));
+    }
 
     final series = _pair == 'vi'
         ? [
@@ -69,9 +100,45 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
           ],
         ),
       ),
-      body: ListView(
+      body: RefreshIndicator(
+        onRefresh: () => _syncHistory(force: true),
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (dev == null)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Text('No device paired yet. Add an ESP32-S3 device from Dashboard first.'),
+              ),
+            )
+          else ...[
+          if (latest == null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: SemColors.warning.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: SemColors.warning.withValues(alpha: 0.5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.hourglass_top_rounded, color: SemColors.warning, size: 20),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Waiting for first ESP32-S3 telemetry packet. Check Wi-Fi, EMQX Cloud Auth, and Webhook.',
+                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _loadingHistory ? null : () => _syncHistory(force: true),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
           // 3-column summary strip matching AVR Solar & Battery Log
           Card(
             child: Padding(
@@ -79,22 +146,27 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
               child: Column(
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _SummaryBadge(
-                        icon: Icons.bolt_rounded,
-                        title: 'Voltage',
-                        value: latest != null ? '${latest.voltageRms.toStringAsFixed(1)} V' : '--',
+                      Expanded(
+                        child: _SummaryBadge(
+                          icon: Icons.bolt_rounded,
+                          title: 'Voltage',
+                          value: latest != null ? '${latest.voltageRms.toStringAsFixed(1)} V' : '--',
+                        ),
                       ),
-                      _SummaryBadge(
-                        icon: Icons.verified_outlined,
-                        title: 'Power Factor',
-                        value: latest != null ? '${latest.powerFactor.toStringAsFixed(2)} PF' : '--',
+                      Expanded(
+                        child: _SummaryBadge(
+                          icon: Icons.verified_outlined,
+                          title: 'Power Factor',
+                          value: latest != null ? '${latest.powerFactor.toStringAsFixed(2)} PF' : '--',
+                        ),
                       ),
-                      _SummaryBadge(
-                        icon: Icons.speed_rounded,
-                        title: 'Active Power',
-                        value: latest != null ? '${(latest.activePowerW / 1000).toStringAsFixed(2)} kW' : '--',
+                      Expanded(
+                        child: _SummaryBadge(
+                          icon: Icons.speed_rounded,
+                          title: 'Active Power',
+                          value: latest != null ? '${(latest.activePowerW / 1000).toStringAsFixed(2)} kW' : '--',
+                        ),
                       ),
                     ],
                   ),
@@ -105,7 +177,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     crossAxisCount: 2,
-                    childAspectRatio: 2.35,
+                    childAspectRatio: 2.1,
                     mainAxisSpacing: 8,
                     crossAxisSpacing: 8,
                     children: [
@@ -113,8 +185,8 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                       _MeasureCell('Apparent Power', latest != null ? '${latest.apparentPowerVa.toStringAsFixed(0)} VA' : '--'),
                       _MeasureCell('Frequency', latest != null ? '${latest.frequencyHz.toStringAsFixed(2)} Hz' : '--'),
                       _MeasureCell('Cumulative kWh', latest != null ? '${latest.energyKwh.toStringAsFixed(2)} kWh' : '--'),
-                      _MeasureCell('Status', dev?.isOnline == true ? 'Connected' : 'Offline'),
-                      _MeasureCell('Last Update', IstTimeUtils.formatTimeIst(latest?.ingestedAt ?? dev?.lastSeenAt)),
+                      _MeasureCell('Status', dev.isOnline == true ? 'Connected' : (latest == null ? 'Awaiting Data' : 'Offline')),
+                      _MeasureCell('Last Update', IstTimeUtils.formatTimeIst(latest?.ingestedAt ?? dev.lastSeenAt)),
                     ],
                   ),
                 ],
@@ -139,7 +211,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                             DropdownMenuItem(value: 7, child: Text('Last 7 Days')),
                           ],
                           onChanged: (v) async {
-                            if (v != null && dev != null) {
+                            if (v != null) {
                               setState(() => _days = v);
                               await state.loadHistory(dev.deviceId, days: v);
                             }
@@ -148,16 +220,19 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                       ),
                       const SizedBox(width: 8),
                       IconButton.outlined(
-                        icon: Icon(Icons.refresh_rounded, color: SemColors.accentPrimary(context)),
-                        onPressed: () {
-                          if (dev != null) state.loadHistory(dev.deviceId, days: _days);
-                        },
+                        icon: _loadingHistory
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                            : Icon(Icons.refresh_rounded, color: SemColors.accentPrimary(context)),
+                        onPressed: () => _syncHistory(force: true),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
                     children: [
                       DropdownButton<String>(
                         value: _pair,
@@ -170,6 +245,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
                         },
                       ),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Checkbox(
                             value: _showMinMax,
@@ -187,7 +263,9 @@ class _MonitoringScreenState extends State<MonitoringScreen> {
               ),
             ),
           ),
+          ],
         ],
+      ),
       ),
     );
   }

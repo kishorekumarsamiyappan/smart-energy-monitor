@@ -67,4 +67,13 @@ void main() {
     expect(find.text('Mode Settings'), findsOneWidget);
     expect(find.text('Summary'), findsOneWidget);
   });
+
+  test('Non-demo AppState defaults Dashboard Prev/Curr estimate to 0.0 kWh', () {
+    final realState = AppState();
+    final bill = realState.currentBillingEstimateFor('SEM_ESP32S3_01');
+    expect(bill.previousReading, 0.0);
+    expect(bill.currentReading, 0.0);
+    expect(bill.unitsConsumed, 0.0);
+    expect(bill.totalEstimatedAmountInr, 0.0);
+  });
 }

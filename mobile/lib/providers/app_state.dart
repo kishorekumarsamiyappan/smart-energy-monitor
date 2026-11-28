@@ -286,16 +286,35 @@ class AppState extends ChangeNotifier {
           if (latestRes['sensorConfig'] != null) {
             _sensorConfigByDevice[d.deviceId] = DeviceSensorConfigModel.fromJson(latestRes['sensorConfig'] as Map<String, dynamic>);
           }
+        } catch (_) {}
+
+        try {
           final ioRes = await _api.request('GET', '/devices/${d.deviceId}/io-config', token: _token);
           if (ioRes['ioConfig'] != null) {
             _ioConfigByDevice[d.deviceId] = DeviceIoConfigModel.fromJson(ioRes['ioConfig'] as Map<String, dynamic>);
           }
+        } catch (_) {}
+
+        try {
           final relRes = await _api.request('GET', '/devices/${d.deviceId}/relays', token: _token);
           final rawRelays = (relRes['relays'] as List<dynamic>? ?? []);
           _relaysByDevice[d.deviceId] = rawRelays.map((e) => DeviceRelayModel.fromJson(e as Map<String, dynamic>)).toList();
+        } catch (_) {}
+
+        try {
           final fwRes = await _api.request('GET', '/devices/${d.deviceId}/firmware', token: _token);
           _firmwareByDevice[d.deviceId] = DeviceFirmwareStatusModel.fromJson(fwRes);
         } catch (_) {}
+
+        if (d.deviceId == _selectedDeviceId || !_historyByDevice.containsKey(d.deviceId)) {
+          try {
+            final histRes = await _api.request('GET', '/devices/${d.deviceId}/history?days=1', token: _token);
+            final pts = (histRes['points'] as List<dynamic>? ?? [])
+                .map((e) => TelemetryPointModel.fromJson(e as Map<String, dynamic>))
+                .toList();
+            _historyByDevice[d.deviceId] = pts;
+          } catch (_) {}
+        }
       }
 
       final alertRes = await _api.request('GET', '/alerts', token: _token);
@@ -492,15 +511,17 @@ class AppState extends ChangeNotifier {
 
   BillCalculationSummary currentBillingEstimateFor(String deviceId) {
     final latest = _latestByDevice[deviceId];
-    final currentKwh = latest?.energyKwh ?? 1685.4;
-    final cycleStart = deviceId.endsWith('2') ? 450.0 : 1320.0;
+    final currentKwh = _isDemoMode ? (latest?.energyKwh ?? 1685.4) : (latest?.energyKwh ?? 0.0);
+    final cycleStart = _isDemoMode ? (deviceId.endsWith('2') ? 450.0 : 1320.0) : 0.0;
     final dev = _devices.firstWhere((d) => d.deviceId == deviceId, orElse: () => DemoDataService.buildDemoDevices().first);
+    final nowDate = DateTime.now().toIso8601String().substring(0, 10);
+    final prevDate = DateTime.now().subtract(const Duration(days: 60)).toIso8601String().substring(0, 10);
     return TnebBillingEngine.calculateIndicative2026(
       deviceId: deviceId,
       previousReading: cycleStart,
       currentReading: currentKwh >= cycleStart ? currentKwh : cycleStart,
-      previousReadingDate: '2026-10-01',
-      currentReadingDate: '2026-11-25',
+      previousReadingDate: _isDemoMode ? '2026-10-01' : prevDate,
+      currentReadingDate: _isDemoMode ? '2026-11-25' : nowDate,
       readingSource: 'automatic_esp32',
       consumerEligible: dev.consumerEligibleForSubsidy,
     );

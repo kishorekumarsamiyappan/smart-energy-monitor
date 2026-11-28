@@ -14,7 +14,7 @@ import { useData } from '@/lib/data-context';
 export default function MonitoringPage() {
   const router = useRouter();
   const { user, isDemoMode, isLoading } = useAuth();
-  const { devices, selectedDeviceId, setSelectedDeviceId, latestByDevice, historyByDevice, loadDeviceHistory } = useData();
+  const { devices, selectedDeviceId, setSelectedDeviceId, latestByDevice, historyByDevice, loadDeviceHistory, refreshAll } = useData();
 
   const [selectedDatePreset, setSelectedDatePreset] = useState<'today' | 'yesterday' | '7d'>('today');
   const [showMinMax, setShowMinMax] = useState(true);
@@ -131,6 +131,36 @@ export default function MonitoringPage() {
           />
         </div>
       </div>
+
+      {activeDevice && !latest && points.length === 0 && (
+        <div
+          className="sem-card"
+          style={{
+            padding: 14,
+            marginBottom: 16,
+            borderColor: 'var(--sem-warning)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 13, color: 'var(--sem-text)' }}>
+            Waiting for first ESP32-S3 telemetry packet from <strong>{activeDevice.deviceId}</strong>. Ensure Wi-Fi is connected, EMQX Cloud Authentication matches, and the EMQX HTTP Webhook is active.
+          </div>
+          <button
+            type="button"
+            className="sem-btn sem-btn-outline"
+            onClick={() => {
+              void refreshAll();
+              void loadDeviceHistory(activeDevice.deviceId, selectedDatePreset === '7d' ? 7 : 1);
+            }}
+          >
+            <RefreshCw size={15} /> Retry
+          </button>
+        </div>
+      )}
 
       {/* 3-Column Summary Strip matching AVR top strip */}
       <div className="sem-card" style={{ padding: 18, marginBottom: 18 }}>

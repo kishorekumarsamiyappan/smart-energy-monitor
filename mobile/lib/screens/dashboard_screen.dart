@@ -84,6 +84,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final dev = state.devices.firstWhere((d) => d.deviceId == deviceId);
     final latest = state.latestByDevice[deviceId];
     final lastTs = DateTime.tryParse(latest?.ingestedAt ?? dev.lastSeenAt ?? '');
+    final hasAnyPacket = latest != null || lastTs != null;
     final stale = lastTs == null ||
         DateTime.now().toUtc().difference(lastTs.toUtc()).inSeconds > AppConstants.staleTelemetrySeconds;
     final online = dev.isOnline && !stale;
@@ -112,7 +113,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '${IstTimeUtils.formatTimeIst(latest?.ingestedAt ?? dev.lastSeenAt)}${stale ? " • STALE" : ""}',
+                        hasAnyPacket
+                            ? '${IstTimeUtils.formatTimeIst(latest?.ingestedAt ?? dev.lastSeenAt)}${stale ? " • STALE" : ""}'
+                            : 'Awaiting first telemetry packet',
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
@@ -121,12 +124,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     SemStatusBadge(
-                      label: online ? 'ONLINE' : (stale ? 'STALE' : 'OFFLINE'),
-                      color: online ? SemColors.success : (stale ? SemColors.warning : SemColors.error),
+                      label: online ? 'ONLINE' : (hasAnyPacket ? (stale ? 'STALE' : 'OFFLINE') : 'WAITING'),
+                      color: online
+                          ? SemColors.success
+                          : (hasAnyPacket ? (stale ? SemColors.warning : SemColors.error) : SemColors.accentSecondary(context)),
                     ),
                     if (dev.wifiRssiDbm != null)
                       Padding(
@@ -173,9 +179,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
             const SizedBox(height: 12),
             if (latest == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text('Waiting for first ESP32-S3 telemetry packet...'),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? SemColors.surfaceDark
+                      : SemColors.lightCard.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.6)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.sensors_rounded, size: 18, color: SemColors.accentPrimary(context)),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Waiting for first ESP32-S3 telemetry packet...',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                          ),
+                        ),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: state.refreshProductionData,
+                          child: const Text('Refresh', style: TextStyle(fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Check that the ESP32-S3 is connected to Wi-Fi, EMQX Cloud Authentication matches ${dev.deviceId}, and the EMQX HTTP Webhook rule is enabled.',
+                      style: TextStyle(fontSize: 11.5, color: SemColors.mutedText(context)),
+                    ),
+                  ],
+                ),
               )
             else
               Column(
@@ -293,9 +337,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               children: [
                 Expanded(
+                  flex: 4,
                   child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      minimumSize: const Size(0, 42),
+                    ),
                     icon: const Icon(Icons.monitor_heart_outlined, size: 17),
-                    label: const Text('Monitor'),
+                    label: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Monitor', maxLines: 1, softWrap: false),
+                    ),
                     onPressed: () {
                       state.selectDevice(deviceId);
                       Navigator.of(context).push(
@@ -304,33 +356,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                 ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: () {
-                    state.selectDevice(deviceId);
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => RelaysScreen(deviceId: deviceId)),
-                    );
-                  },
-                  child: const Text('Relays'),
+                const SizedBox(width: 6),
+                Expanded(
+                  flex: 3,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      minimumSize: const Size(0, 42),
+                    ),
+                    onPressed: () {
+                      state.selectDevice(deviceId);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => RelaysScreen(deviceId: deviceId)),
+                      );
+                    },
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Relays', maxLines: 1, softWrap: false),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: () {
-                    state.selectDevice(deviceId);
-                    widget.onOpenBilling();
-                  },
-                  child: const Text('Bill'),
+                const SizedBox(width: 6),
+                Expanded(
+                  flex: 2,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      minimumSize: const Size(0, 42),
+                    ),
+                    onPressed: () {
+                      state.selectDevice(deviceId);
+                      widget.onOpenBilling();
+                    },
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Bill', maxLines: 1, softWrap: false),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 8),
-                IconButton.outlined(
-                  icon: const Icon(Icons.settings_outlined),
-                  onPressed: () {
-                    state.selectDevice(deviceId);
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => DeviceSettingsScreen(deviceId: deviceId)),
-                    );
-                  },
+                const SizedBox(width: 6),
+                SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: IconButton.outlined(
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.settings_outlined, size: 20),
+                    onPressed: () {
+                      state.selectDevice(deviceId);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => DeviceSettingsScreen(deviceId: deviceId)),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
